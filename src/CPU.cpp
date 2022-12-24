@@ -43,7 +43,6 @@ void CPU::write(int addr, int num) {
          } else {
             mem[0x2006] = num | (mem[0x2006] & 0xff00);
          }
-         printf("ppuaddr:%x\n", mem[0x2006]);
          ppuaddrCnt++;
          ppuaddrCnt %= 2;
       } else {
@@ -176,7 +175,7 @@ int CPU::fetchOperand(string addr) {
       return mem[addradd] + (mem[addradd + 1] << 8) & 0xffff;
    } else if (addr == "relative") {
       int addr = fetch();
-      // addrを16bitの２の補数表現に拡張
+      // 8bitのaddrを16bitの２の補数表現に拡張
       if ((addr & 1 << 7)) {
          addr = 0b1111111100000000 | addr;
       }

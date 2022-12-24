@@ -1,11 +1,8 @@
 #include "header/CPU.hpp"
-#include "header/PPU.hpp"
+#include "header/defs.hpp"
 #include <SDL.h>
 #include <vector>
 using namespace std;
-#define PIXEL_SIZE 3
-#define SCREEN_X_MIN 256
-#define SCREEN_Y_MIN 240
 
 int main(int argc, char *argv[]) {
    if (SDL_Init(SDL_INIT_VIDEO)) {
