@@ -4,3 +4,4 @@ main2.cpp
 hello_sdl.cpp
 *.exe
 *.dll
+rom/

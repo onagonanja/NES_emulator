@@ -82,45 +82,35 @@ void CPU::run() {
    exec(opeName, data, addressing);
 }
 
-// ROM読み込み
+
 void CPU::readROM() {
-   string filename = "./rom/helloworld.text";
-   fstream ifs(filename);
-
-   if (ifs.fail()) {
-      cerr << "Failed to open file." << endl;
-      return;
+   string filename = "./rom/sample1.dat";
+   ifstream ifs(filename, ios::in | ios::binary);
+   if (!ifs) {
+      cout << "ファイルが開けません";
+      exit(1);
    }
-
-   char ch;
-   int cnt = 0;
-   string num = "0x";
-
-   while (ifs.get(ch)) {
-      num += ch;
-      cnt++;
-      if (cnt % 2 == 0) {
-         ROMdata.push_back(stoi(num, nullptr, 16)); // ROMデータを1バイトずつ配列に格納
-         num = "0x";
-      }
-   }
+   ifs.seekg(0, ios::end);
+   size_t size = ifs.tellg();
+   ifs.seekg(0);
+   unsigned char *data = new unsigned char[size];
+   ifs.read((char *)data, size);
 
    // iNESヘッダーからプログラムROMとキャラクターROMの範囲を割り出す(バイト単位)
-   int CharacterRomStart = 0x0010 + (ROMdata[4] * 0x4000); // ヘッダー16バイト+プログラムデータのページ数*ページ数当たりのバイト数
-   int CharacterRomEnd = CharacterRomStart + (ROMdata[5] * 0x2000);
-
-   CharacterRom.assign(ROMdata[5] * 0x2000, vector<int>(64));
+   int CharacterRomStart = 0x0010 + (data[4] * 0x4000); // ヘッダー16バイト+プログラムデータのページ数*ページ数当たりのバイト数
+   int CharacterRomEnd = CharacterRomStart + (data[5] * 0x2000);
+   CharacterRom.assign(data[5] * 0x2000, vector<int>(64));
 
    // プログラムをメモリにセット
    for (int i = 0; i < CharacterRomStart - 0x10; i++) {
-      mem[i + 0x8000] = ROMdata[i + 0x10];
+      mem[i + 0x8000] = data[i + 0x10];
    }
 
    // キャラクターROMのデータをセット
-   for (int i = 0; i * 16 < ROMdata[5] * 0x2000; i++) { // 1スプライトごとに長さ64の配列にする
+   for (int i = 0; i * 16 < data[5] * 0x2000; i++) { // 1スプライトごとに長さ64の配列にする
       for (int j = 0; j < 8; j++) {
-         int first = ROMdata[CharacterRomStart + i * 16 + j];
-         int second = ROMdata[CharacterRomStart + i * 16 + 8 + j];
+         int first = data[CharacterRomStart + i * 16 + j];
+         int second = data[CharacterRomStart + i * 16 + 8 + j];
          for (int h = 0; h < 8; h++) {
             CharacterRom[i][j * 8 + h] = !!(first & 1 << (7 - h)) + !!(second & 1 << (7 - h)) * 2;
          }

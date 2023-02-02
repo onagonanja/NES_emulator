@@ -2,6 +2,7 @@
 #include "header/defs.hpp"
 #include <SDL.h>
 #include <vector>
+#include <iostream>
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -33,25 +34,23 @@ int main(int argc, char *argv[]) {
             break;
          }
       }
-      
+
       cpu->run();
       vector<vector<vector<int>>> color = cpu->setPixcels();
-      
       for (int y = 0; y < SCREEN_Y_MIN; y++) {
          for (int x = 0; x < SCREEN_X_MIN; x++) {
-            SDL_Rect fillRect ;
-            fillRect.h=PIXEL_SIZE;
-            fillRect.w=PIXEL_SIZE;
-            fillRect.x=x*PIXEL_SIZE;
-            fillRect.y=y*PIXEL_SIZE;
+            SDL_Rect fillRect;
+            fillRect.h = PIXEL_SIZE;
+            fillRect.w = PIXEL_SIZE;
+            fillRect.x = x * PIXEL_SIZE;
+            fillRect.y = y * PIXEL_SIZE;
             SDL_SetRenderDrawColor(gRenderer, color[y][x][0], color[y][x][1], color[y][x][2], 0);
             SDL_RenderFillRect(gRenderer, &fillRect);
          }
       }
-
       SDL_RenderPresent(gRenderer);
    }
-   
+
    SDL_DestroyWindow(window);
    SDL_Quit();
    return 0;
