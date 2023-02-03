@@ -9,7 +9,13 @@
 using namespace std;
 
 // リセット
-void CPU::reset() { registers["PC"] = read(0xFFFC) | 0x8000; }
+void CPU::reset() {
+   int pc_lowByte = read(0xFFFC);
+   int pc_highByte = read(0xFFFD);
+   registers["PC"] = (pc_highByte << 8) | pc_lowByte;
+   push_status_registers();
+   cout << registers["PC"] << endl;
+}
 
 // メモリ読み込み
 int CPU::read(int addr) {
@@ -72,6 +78,30 @@ int CPU::pop_stack() {
    return res;
 }
 
+// ステータスレジスタをスタックに退避
+void CPU::push_status_registers() {
+   push_stack(registers["negative"]);
+   push_stack(registers["overflow"]);
+   push_stack(registers["reserved"]);
+   push_stack(registers["break"]);
+   push_stack(registers["decimal"]);
+   push_stack(registers["interrupt"]);
+   push_stack(registers["zero"]);
+   push_stack(registers["carry"]);
+}
+
+// スタックからステータスレジスタを復帰
+void CPU::pop_status_registers() {
+   registers["carry"] = pop_stack();
+   registers["zero"] = pop_stack();
+   registers["interrupt"] = pop_stack();
+   registers["decimal"] = pop_stack();
+   registers["break"] = pop_stack();
+   registers["reserved"] = pop_stack();
+   registers["overflow"] = pop_stack();
+   registers["negative"] = pop_stack();
+}
+
 // 実行
 void CPU::run() {
    int code = fetch();
@@ -79,12 +109,13 @@ void CPU::run() {
    string opeName = ope["baseName"];
    string addressing = ope["mode"];
    int data = fetchOperand(addressing);
+   cout << opeName << endl;
    exec(opeName, data, addressing);
 }
 
-
 void CPU::readROM() {
-   string filename = "./rom/sample1.dat";
+   //string filename = "./rom/sample1.dat";
+   string filename = "./rom/roulette.nes";
    ifstream ifs(filename, ios::in | ios::binary);
    if (!ifs) {
       cout << "ファイルが開けません";
@@ -100,6 +131,7 @@ void CPU::readROM() {
    int CharacterRomStart = 0x0010 + (data[4] * 0x4000); // ヘッダー16バイト+プログラムデータのページ数*ページ数当たりのバイト数
    int CharacterRomEnd = CharacterRomStart + (data[5] * 0x2000);
    CharacterRom.assign(data[5] * 0x2000, vector<int>(64));
+   cout << CharacterRomStart << " " << CharacterRomEnd << endl;
 
    // プログラムをメモリにセット
    for (int i = 0; i < CharacterRomStart - 0x10; i++) {
@@ -166,7 +198,7 @@ int CPU::fetchOperand(string addr) {
    } else if (addr == "relative") {
       int addr = fetch();
       // 8bitのaddrを16bitの２の補数表現に拡張
-      if ((addr & 1 << 7)) {
+      if ((addr & (1 << 7))) {
          addr = 0b1111111100000000 | addr;
       }
       return (addr + registers["PC"]) & 0xffff;
@@ -228,8 +260,8 @@ void CPU::exec(string opeName, int data, string mode) {
       }
    } else if (opeName == "BIT") {
       registers["zero"] = !!(registers["A"] & read(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
-      registers["overflow"] = !!(read(data) & 1 << 6);     // メモリデータの6bit目をVレジスタに格納
-      registers["negative"] = !!(read(data) & 1 << 7);     // メモリデータの7bit目をNレジスタに格納
+      registers["overflow"] = !!(read(data) & (1 << 6));   // メモリデータの6bit目をVレジスタに格納
+      registers["negative"] = !!(read(data) & (1 << 7));   // メモリデータの7bit目をNレジスタに格納
    } else if (opeName == "CMP") {
       if (registers["A"] >= read(data)) {
          registers["C"] = 1;
@@ -325,6 +357,10 @@ void CPU::exec(string opeName, int data, string mode) {
       registers["PC"] = highByte + lowByte + 1;
    } else if (opeName == "RTI") {
       // 割り込みから復帰
+      pop_status_registers();
+      int pc_lowByte = pop_stack();
+      int pc_highByte = pop_stack();
+      registers["PC"] = (pc_highByte << 8) | pc_lowByte;
    } else if (opeName == "BCC") {
       if (!registers["carry"]) {
          registers["PC"] = data;

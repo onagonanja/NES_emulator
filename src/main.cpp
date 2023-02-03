@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
    bool quit = false;
    CPU *cpu = new CPU;
    cpu->readROM();
+   cpu->reset();
 
    // mainloop
    while (!quit) {

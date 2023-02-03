@@ -12,7 +12,7 @@ class CPU {
 
    // レジスタ
    map<string, int> registers = {
-       {"A", 0x00}, {"X", 0x00}, {"Y", 0x00}, {"P", 0x00}, {"S", 0xff}, {"PC", 0x8000}, {"negative", false}, {"overflow", false}, {"reserved", true}, {"break", true}, {"decimal", false}, {"interrupt", true}, {"zero", false}, {"carry", false},
+       {"A", 0x00}, {"X", 0x00}, {"Y", 0x00}, {"P", 0x00}, {"S", 0xff}, {"PC", 0x0000}, {"negative", false}, {"overflow", false}, {"reserved", true}, {"break", true}, {"decimal", false}, {"interrupt", true}, {"zero", false}, {"carry", false},
    };
 
    // メモリ
@@ -44,6 +44,12 @@ class CPU {
 
    // スタックから値をpop
    int pop_stack();
+
+   // ステータスレジスタをスタックに退避
+   void push_status_registers();
+
+   // スタックからステータスレジスタを復帰
+   void pop_status_registers();
 
    // PCレジスタをインクリメントしつつその内容を返す
    int fetch();
