@@ -1,8 +1,11 @@
 #include "header/CPU.hpp"
 #include "header/defs.hpp"
 #include <SDL.h>
-#include <vector>
+#include <iomanip>
 #include <iostream>
+#include <time.h>
+#include <vector>
+
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -23,6 +26,7 @@ int main(int argc, char *argv[]) {
    CPU *cpu = new CPU;
    cpu->readROM();
    cpu->reset();
+   // cpu->NMI();
 
    // mainloop
    while (!quit) {
@@ -31,18 +35,23 @@ int main(int argc, char *argv[]) {
 
       while (SDL_PollEvent(&e)) {
          if (SDL_QUIT == e.type) {
+            cpu->print_appeared_opelist();
             quit = true;
             break;
          }
       }
 
-      cpu->run();
+      for (int i = 0; i < 1000; i++) {
+         cpu->run();
+      }
+
       vector<vector<vector<int>>> color = cpu->setPixcels();
+
+      SDL_Rect fillRect;
+      fillRect.h = PIXEL_SIZE;
+      fillRect.w = PIXEL_SIZE;
       for (int y = 0; y < SCREEN_Y_MIN; y++) {
          for (int x = 0; x < SCREEN_X_MIN; x++) {
-            SDL_Rect fillRect;
-            fillRect.h = PIXEL_SIZE;
-            fillRect.w = PIXEL_SIZE;
             fillRect.x = x * PIXEL_SIZE;
             fillRect.y = y * PIXEL_SIZE;
             SDL_SetRenderDrawColor(gRenderer, color[y][x][0], color[y][x][1], color[y][x][2], 0);

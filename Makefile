@@ -10,4 +10,4 @@ LIBS    = -lSDL2main -lSDL2
 
 .PHONY: all
 all:
-	g++ $(INCDIR) $(LIBDIR) $(SRCS) $(LIBS) -o $(TARGET)
+	g++ $(INCDIR) $(LIBDIR) $(SRCS) $(LIBS) -o $(TARGET) -O3

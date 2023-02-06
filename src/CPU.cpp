@@ -3,10 +3,20 @@
 #include "header/operationlist.hpp"
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <string>
+#include <time.h>
 using namespace std;
+
+void hex(int n) { cout << hex << setw(4) << setfill('0') << n << endl; }
+
+// テスト用のoptionを記述
+void CPU::test_option() {
+   // 常にVBRANK状態にする。
+   mem[0x2002] = 0b10000000 | mem[0x2002];
+}
 
 // リセット
 void CPU::reset() {
@@ -14,34 +24,60 @@ void CPU::reset() {
    int pc_highByte = read(0xFFFD);
    registers["PC"] = (pc_highByte << 8) | pc_lowByte;
    push_status_registers();
+   registers["interrupt"] = true;
+   cout << registers["PC"] << endl;
+}
+
+// Non-Markable-Interrupt
+void CPU::NMI() {
+   int pc_lowByte = read(0xFFFA);
+   int pc_highByte = read(0xFFFB);
+   registers["PC"] = (pc_highByte << 8) | pc_lowByte;
+   push_status_registers();
+   registers["interrupt"] = true;
    cout << registers["PC"] << endl;
 }
 
 // メモリ読み込み
 int CPU::read(int addr) {
+   int res;
+   // ミラー領域に対する読み込み
    if (addr >= 0x0800 && addr < 0x2000) {
-      return mem[addr - 0x0800]; // ミラー領域
-   } else if (addr >= 0x2000 && addr < 0x4000) {
-      // PPUレジスタ
-      addr = (addr - 0x2000) % 8;
-      return mem[addr - 0x2000];
-   } else {
-      return mem[addr];
+      res = mem[addr - 0x0800];
    }
+   // PPUレジスタに対する読み込み
+   else if (addr >= 0x2000 && addr < 0x4000) {
+      addr = 0x2000 + (addr - 0x2000) % 8;
+      if (addr == 0x2002) {
+         // 読み込みで0x2005をクリア？
+         mem[0x2005] = 0;
+      } else if (addr == 0x2007) {
+         // PPUメモリアドレスを自動で加算
+         mem[0x2006] += 1;
+      }
+      res = mem[addr];
+   } else {
+      res = mem[addr];
+   }
+   cout << "read(" << hex << setw(4) << setfill('0') << addr << ")=" << hex << setw(4) << setfill('0') << res << " ";
+   return res;
 }
 
-// メモリに書き込む
+// メモリ書き込み
 void CPU::write(int addr, int num) {
+   cout << "write(" << hex << setw(4) << setfill('0') << addr << "," << hex << setw(4) << setfill('0') << num << ") ";
+
+   // WRAMのミラー領域に対する書き込み
    if (addr >= 0x0800 && addr < 0x2000) {
-      // 書き込み先がミラー領域の場合
-      mem[addr - 0x0800] = num;
-   } else if (addr >= 0x2000 && addr < 0x4000) {
-      // 書き込み先がPPUレジスタの場合
+      mem[addr % 0x0800] = num;
+   }
+   // PPUレジスタに対する書き込み
+   else if (addr >= 0x2000 && addr < 0x4000) {
       addr = 0x2000 + (addr - 0x2000) % 8;
-      if (addr == 0x2007) {
-         // PPUDATAレジスタに書き込むことで、PPUADDRレジスタから参照したアドレスへ、VRAMに間接的に書き込む
-         writeVRAM(mem[0x2006], num);
-         mem[0x2006]++;
+      if (addr == 0x2004) {
+         // スプライトメモリアドレス(0x2003)で指定されたアドレスへデータを書き込む。 書き込む度にスプライトメモリアドレスはインクリメントされる
+         writeVRAM(mem[0x2003], num);
+         mem[0x2003]++;
       } else if (addr == 0x2006) {
          // 書き込み回数が偶数回ならアドレスの上位16bit,奇数なら下位16bitを書き込む
          if (ppuaddrCnt == 0) {
@@ -51,6 +87,12 @@ void CPU::write(int addr, int num) {
          }
          ppuaddrCnt++;
          ppuaddrCnt %= 2;
+      } else if (addr == 0x2007) {
+         // PPUDATAレジスタに書き込むことで、PPUADDRレジスタから参照したアドレスへ、VRAMに間接的に書き込む
+         cout << "0x2006: ";
+         hex(mem[0x2006]);
+         writeVRAM(mem[0x2006], num);
+         mem[0x2006]++;
       } else {
          mem[addr] = num;
       }
@@ -62,19 +104,24 @@ void CPU::write(int addr, int num) {
 // PCレジスタをインクリメントし、そのアドレスのデータを返す
 int CPU::fetch() {
    int res = read(registers["PC"]++);
+   // int res = mem[registers["PC"]++];
    return res;
 }
 
 // スタックに値をプッシュ
 void CPU::push_stack(int data) {
-   mem[STACK_START + registers["S"]] = registers["A"];
+   cout << "push ";
+   hex(data);
+   mem[STACK_START + registers["S"]] = data;
    registers["S"]--;
 }
 
 // スタックからpop
 int CPU::pop_stack() {
-   int res = mem[STACK_START + registers["S"]];
+   int res = mem[STACK_START + registers["S"] + 1];
    registers["S"]++;
+   cout << "pop ";
+   hex(res);
    return res;
 }
 
@@ -104,23 +151,41 @@ void CPU::pop_status_registers() {
 
 // 実行
 void CPU::run() {
+   cout << hex << setw(4) << setfill('0') << count++ << " ";
+   test_option();
    int code = fetch();
    map<string, string> ope = opelist[code];
    string opeName = ope["baseName"];
    string addressing = ope["mode"];
+   cout << opeName << " ";
+   ope_appeared.insert(opeName);
    int data = fetchOperand(addressing);
-   cout << opeName << endl;
    exec(opeName, data, addressing);
+   cout << "\n";
 }
 
+void CPU::print_appeared_opelist() {
+   cout << "---------------------Appeared Opelations----------------------------" << endl;
+   for (auto itr = ope_appeared.begin(); itr != ope_appeared.end(); ++itr) {
+      cout << *itr << endl;
+   }
+   cout << "--------------------------------------------------------------------" << endl;
+};
+
 void CPU::readROM() {
-   //string filename = "./rom/sample1.dat";
-   string filename = "./rom/roulette.nes";
+   // string filename = "./rom/sample1.dat";
+   //  string filename = "./rom/roulette.nes";
+   string filename = "./rom/NEStress.NES";
+   // string filename = "./rom/masmix.nes";
+   //  string filename = "./rom/TK20NTSC.NES";
+   //  string filename = "./rom/hello.nes";
+   //  string filename = "./rom/firedemo.nes";
    ifstream ifs(filename, ios::in | ios::binary);
    if (!ifs) {
       cout << "ファイルが開けません";
       exit(1);
    }
+   cout << filename << endl;
    ifs.seekg(0, ios::end);
    size_t size = ifs.tellg();
    ifs.seekg(0);
@@ -168,10 +233,10 @@ int CPU::fetchOperand(string addr) {
       return fetch();
    } else if (addr == "zeroPageX") {
       int add = fetch();
-      return (add + (registers["X"] & 0xFF)) & 0xffff;
+      return (add + (registers["X"] & 0xFF)) & 0xff;
    } else if (addr == "zeroPageY") {
       int add = fetch();
-      return (add + (registers["Y"] & 0xFF)) & 0xffff;
+      return (add + (registers["Y"] & 0xFF)) & 0xff;
    } else if (addr == "absolute") {
       int add1 = fetch();
       int add2 = fetch() << 8;
@@ -185,16 +250,18 @@ int CPU::fetchOperand(string addr) {
       int add2 = fetch() << 8;
       return (add1 + add2 + registers["Y"]) & 0xffff;
    } else if (addr == "preIndexedIndirect") {
-      int addradd = fetch() + registers["X"];
+      int addradd = (fetch() + registers["X"]) & 0xff;
       return ((mem[addradd + 1] << 8) + mem[addradd]) & 0xffff;
    } else if (addr == "postIndexedIndirect") {
       int addradd = fetch();
-      int add1 = mem[addradd] << 8;
-      int add2 = mem[addradd + 1];
-      return (add1 + add2 + registers["Y"]) && 0xffff;
+      int add1 = mem[addradd];
+      int add2 = mem[addradd + 1] << 8;
+      int offset = registers["Y"];
+      return (add1 + add2 + offset) & 0xffff;
    } else if (addr == "indirectAbsolute") {
-      int addradd = fetch() + (fetch() << 8);
-      return mem[addradd] + (mem[addradd + 1] << 8) & 0xffff;
+      int addradd_low = fetch();
+      int addradd_high = fetch();
+      return (mem[addradd_low + (addradd_high << 8)] + mem[(addradd_low + 1) & 0xff + (addradd_high) << 8]) & 0xffff;
    } else if (addr == "relative") {
       int addr = fetch();
       // 8bitのaddrを16bitの２の補数表現に拡張
@@ -214,18 +281,21 @@ void CPU::exec(string opeName, int data, string mode) {
       } else {
          registers["A"] = read(data);
       }
+      setRegisters(registers["A"]);
    } else if (opeName == "LDX") {
       if (mode == "immediate") {
          registers["X"] = data;
       } else {
          registers["X"] = read(data);
       }
+      setRegisters(registers["X"]);
    } else if (opeName == "LDY") {
       if (mode == "immediate") {
          registers["Y"] = data;
       } else {
          registers["Y"] = read(data);
       }
+      setRegisters(registers["Y"]);
    } else if (opeName == "STA") { // レジスタのデータをメモリにストア
       write(data, registers["A"]);
    } else if (opeName == "STX") {
@@ -234,63 +304,84 @@ void CPU::exec(string opeName, int data, string mode) {
       write(data, registers["Y"]);
    } else if (opeName == "TAX") { // レジスタの値を別レジスタにコピー
       registers["X"] = registers["A"];
+      setRegisters(registers["X"]);
    } else if (opeName == "TAY") {
       registers["Y"] = registers["A"];
+      setRegisters(registers["Y"]);
    } else if (opeName == "TSX") {
-      registers["S"] = registers["X"];
+      registers["X"] = registers["S"];
+      setRegisters(registers["X"]);
    } else if (opeName == "TXA") {
-      registers["X"] = registers["A"];
+      registers["A"] = registers["X"];
+      setRegisters(registers["X"]);
    } else if (opeName == "TXS") {
       registers["S"] = registers["X"];
+      setRegisters(registers["S"]);
    } else if (opeName == "TYA") {
       registers["A"] = registers["Y"];
+      setRegisters(registers["A"]);
    } else if (opeName == "ADC") { // 演算命令いろいろ
-      int calc = read(data) + registers["A"] + registers["carry"];
+      int calc;
+      if (mode == "immediate") {
+         calc = data + registers["A"] + registers["carry"];
+      } else {
+         calc = read(data) + registers["A"] + registers["carry"];
+      }
+      registers["carry"] = !!(calc > 0xff);
+      setRegisters(calc);
+      registers["A"] = calc & 0xff;
+   } else if (opeName == "AND") {
+      int calc;
+      if (mode == "immediate") {
+         calc = data & registers["A"];
+      } else {
+         calc = read(data) & registers["A"];
+      }
       setRegisters(calc);
       registers["A"] = calc & 0xff;
    } else if (opeName == "ASL") {
       if (data == -1) {
-         registers["A"] = registers["A"] << 1; // Aレジスタを左シフト(8bit以上は切り捨て) 7bit目をcarryフラグに代入
+         registers["carry"] = !!(registers["A"] & (1 << 7));
+         registers["A"] = (registers["A"] << 1) & 0xff; // Aレジスタを左シフト(8bit以上は切り捨て) 7bit目をcarryフラグに代入
          setRegisters(registers["A"]);
-         registers["A"] = registers["A"] & 0xff;
       } else {
-         write(data, read(data) << 1); // 指定されたアドレスのbitを左シフト(8bit以上は切り捨て)
+         registers["carry"] = !!(read(data) & (1 << 7));
+         write(data, (read(data) << 1) & 0xff); // 指定されたアドレスのbitを左シフト(8bit以上は切り捨て)
          setRegisters(read(data));
-         write(data, read(data) & 0xff);
       }
    } else if (opeName == "BIT") {
       registers["zero"] = !!(registers["A"] & read(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
       registers["overflow"] = !!(read(data) & (1 << 6));   // メモリデータの6bit目をVレジスタに格納
       registers["negative"] = !!(read(data) & (1 << 7));   // メモリデータの7bit目をNレジスタに格納
    } else if (opeName == "CMP") {
-      if (registers["A"] >= read(data)) {
-         registers["C"] = 1;
-      } else {
-         registers["C"] = 0;
-      }
+      data = (mode == "immediate") ? data : read(data);
+      int diff = registers["A"] - data;
+      registers["carry"] = !!(diff >= 0);
+      setRegisters(diff);
    } else if (opeName == "CPX") {
-      if (registers["X"] >= read(data)) {
-         registers["C"] = 1;
-      } else {
-         registers["C"] = 0;
-      }
+      data = (mode == "immediate") ? data : read(data);
+      int diff = registers["X"] - data;
+      registers["carry"] = !!(diff >= 0);
+      setRegisters(diff);
    } else if (opeName == "CPY") {
-      if (registers["Y"] >= read(data)) {
-         registers["C"] = 1;
-      } else {
-         registers["C"] = 0;
-      }
+      data = (mode == "immediate") ? data : read(data);
+      int diff = registers["Y"] - data;
+      registers["carry"] = !!(diff >= 0);
+      setRegisters(diff);
    } else if (opeName == "DEC") {
       write(data, (read(data) + 0xff) & 0xff);
       setRegisters(read(data));
    } else if (opeName == "DEX") {
       registers["X"] = (registers["X"] + 0xff) & 0xff;
       setRegisters(registers["X"]);
+      hex(registers["X"]);
    } else if (opeName == "DEY") {
       registers["Y"] = (registers["Y"] + 0xff) & 0xff;
       setRegisters(registers["Y"]);
+      hex(registers["Y"]);
    } else if (opeName == "EOR") {
-      registers["A"] = registers["A"] ^ read(data);
+      data = (mode == "immediate" ? data : read(data));
+      registers["A"] = registers["A"] ^ data;
       setRegisters(registers["A"]);
    } else if (opeName == "INC") {
       write(data, (read(data) + 1) & 0xff);
@@ -300,39 +391,52 @@ void CPU::exec(string opeName, int data, string mode) {
       setRegisters(registers["X"]);
    } else if (opeName == "INY") {
       registers["Y"] = (registers["Y"] + 1) & 0xff;
+      hex(registers["Y"]);
       setRegisters(registers["Y"]);
    } else if (opeName == "LSR") {
       if (data == -1) {
+         registers["carry"] = (registers["A"] & 0b1);
          registers["A"] = (registers["A"] >> 1) & 0xff;
          setRegisters(registers["A"]);
       } else {
-         write(data, (read(data) << 1) & 0xff);
+         registers["carry"] = (read(data) & 0b1);
+         write(data, (read(data) >> 1) & 0xff);
          setRegisters(read(data));
       }
    } else if (opeName == "ORA") {
-      registers["A"] = registers["A"] | read(data);
+      data = (mode == "immediate") ? data : read(data);
+      registers["A"] = registers["A"] | data;
+      setRegisters(registers["A"]);
    } else if (opeName == "ROL") {
       if (data == -1) {
-         registers["A"] = (registers["A"] << 1 | !!(registers["A"] & 1 << 7));
+         int tmp = registers["A"];
+         registers["A"] = (registers["A"] << 1) | registers["carry"];
+         registers["carry"] = !!(tmp & 1 << 7);
          setRegisters(registers["A"]);
          registers["A"] = registers["A"] & 0xff;
       } else {
-         write(data, read(data) << 1 | !!(read(data) & 1));
+         int tmp = read(data);
+         write(data, read(data) << 1 | registers["carry"]);
+         registers["carry"] = !!(tmp & 1 << 7);
          setRegisters(read(data));
          write(data, read(data) & 0xff);
       }
    } else if (opeName == "ROR") {
       if (data == -1) {
-         registers["A"] = (registers["A"] >> 1 | (!!(registers["A"] & 1)) << 7);
+         int tmp = registers["A"];
+         registers["A"] = ((registers["A"] >> 1) | (registers["carry"] << 7)) & 0xff;
+         registers["carry"] = !!(tmp & 0b1);
          setRegisters(registers["A"]);
-         registers["A"] = registers["A"] & 0xff;
       } else {
-         write(data, (read(data) >> 1 | !!(read(data) & 1) << 7));
+         int tmp = read(data);
+         write(data, (read(data) >> 1 | (registers["carry"] << 7)) & 0xff);
+         registers["carry"] = !!(tmp & 0b1);
          setRegisters(read(data));
-         write(data, read(data) & 0xff);
       }
    } else if (opeName == "SBC") {
-      registers["A"] = registers["A"] + (~read(data) + 1) + (0x100 - !registers["carry"]);
+      data = (mode == "immediate") ? data : read(data);
+      registers["A"] = registers["A"] + (~data + 1) + (0x100 - !registers["carry"]);
+      registers["carry"] = !!(registers["A"] > 0xff);
       setRegisters(registers["A"]);
       registers["A"] = registers["A"] & 0xff;
    } else if (opeName == "PHA") {
@@ -393,5 +497,23 @@ void CPU::exec(string opeName, int data, string mode) {
       if (registers["overflow"]) {
          registers["PC"] = data;
       }
+   } else if (opeName == "CLC") {
+      registers["carry"] = false;
+   } else if (opeName == "CLD") {
+      registers["decimal"] = false;
+   } else if (opeName == "CLI") {
+      registers["interrupt"] = false;
+   } else if (opeName == "CLV") {
+      registers["overflow"] = false;
+   } else if (opeName == "SEC") {
+      registers["carry"] = true;
+   } else if (opeName == "SED") {
+      registers["decimal"] = true;
+   } else if (opeName == "SEI") {
+      registers["interrupt"] = true;
+   }
+   // 非公式
+   else if (opeName == "NOPD") {
+      registers["PC"]++;
    }
 }

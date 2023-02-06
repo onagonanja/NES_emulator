@@ -2,6 +2,7 @@
 #define INCLUDED_CPU
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 using namespace std;
@@ -27,8 +28,14 @@ class CPU {
    // PPUaddrレジスタの状態
    int ppuaddrCnt = 0;
 
+   // testようのoption
+   void test_option();
+
    // リセット
    void reset();
+
+   // Non-Markable-Interrupt
+   void NMI();
 
    // 値に応じてレジスタを変化させる
    void setRegisters(int num);
@@ -78,6 +85,14 @@ class CPU {
    vector<vector<vector<int>>> setPixcels();
 
    vector<int> getColor(int num);
+
+   //-----------------------Debug-------------------------//
+
+   set<string> ope_appeared;
+
+   void print_appeared_opelist();
+
+   int count = 0;
 };
 
 #endif

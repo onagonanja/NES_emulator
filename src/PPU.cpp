@@ -1,14 +1,15 @@
 #include "header/CPU.hpp"
 #include "header/Pallete.hpp"
+#include <iomanip>
 #include <iostream>
 using namespace std;
 
 // VRAMを読み込む
 int CPU::readVRAM(int addr) {
    if (0x3000 <= addr && addr <= 0x3eff) {
-      return vram[addr - 0x1000];
+      return vram[0x2000 + (addr - 0x3000) % 0xF00];
    } else if (0x3f20 <= addr && addr <= 0x3fff) {
-      return vram[addr - 0x20];
+      return vram[0x3f00 + (addr - 0x3f20) % 0x20];
    } else {
       return vram[addr];
    }
@@ -16,13 +17,14 @@ int CPU::readVRAM(int addr) {
 
 // VRAMに書き込む
 void CPU::writeVRAM(int addr, int num) {
+   cout << "writeVRAMbefore(" << hex << setw(4) << setfill('0') << addr << "," << hex << setw(4) << setfill('0') << num << ") ";
    if (0x3000 <= addr && addr <= 0x3eff) {
-      vram[addr - 0x1000] = num;
+      addr = 0x2000 + (addr - 0x3000) % 0xF00;
    } else if (0x3f20 <= addr && addr <= 0x3fff) {
-      vram[addr - 0x20] = num;
-   } else {
-      vram[addr] = num;
+      addr = 0x3f00 + ((addr - 0x3f20) % 0x20);
    }
+   vram[addr] = num;
+   cout << "writeVRAMafter(" << hex << setw(4) << setfill('0') << addr << "," << hex << setw(4) << setfill('0') << num << ") ";
 }
 
 vector<int> CPU::getColor(int num) {
