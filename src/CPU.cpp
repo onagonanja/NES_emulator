@@ -41,8 +41,8 @@ void CPU::NMI() {
 }
 
 // メモリ読み込み
-int CPU::read(int addr) {
-  int res;
+Byte CPU::read(Address addr) {
+  Byte res;
   // ミラー領域に対する読み込み
   if(addr >= 0x0800 && addr < 0x2000) {
     res = mem[addr - 0x0800];
@@ -66,65 +66,66 @@ int CPU::read(int addr) {
 }
 
 // メモリ書き込み
-void CPU::write(int addr, int num) {
+void CPU::write(Address addr, Byte data) {
   // cout << "write(" << hex << setw(4) << setfill('0') << addr << "," << hex << setw(4) << setfill('0') << num << ") ";
 
   // WRAMのミラー領域に対する書き込み
   if(addr >= 0x0800 && addr < 0x2000) {
-    mem[addr % 0x0800] = num;
+    mem[addr % 0x0800] = data;
   }
   // PPUレジスタに対する書き込み
   else if(addr >= 0x2000 && addr < 0x4000) {
     addr = 0x2000 + (addr - 0x2000) % 8;
     if(addr == 0x2004) {
       // スプライトメモリアドレス(0x2003)で指定されたアドレスへデータを書き込む。 書き込む度にスプライトメモリアドレスはインクリメントされる
-      writeVRAM(mem[0x2003], num);
+      writeVRAM(mem[0x2003], data);
       mem[0x2003]++;
     } else if(addr == 0x2004) {
-      writeSpriteRAM(mem[0x2003], num);
+      writeSpriteRAM(mem[0x2003], data);
       mem[0x2003]++;
     } else if(addr == 0x2006) {
-      // 書き込み回数が偶数回ならアドレスの上位16bit,奇数なら下位16bitを書き込む
+      // 書き込み回数が偶数回ならアドレスの上位8bit,奇数なら下位8bitを書き込む
       if(ppuaddrCnt == 0) {
-        mem[0x2006] = num << 8 | (mem[0x2006] & 0x00ff);
+        ppu_write_addr &= 0x00ff;
+        ppu_write_addr |= static_cast<Address>(data) << 8;
+        mem[0x2006] = data;
       } else {
-        mem[0x2006] = num | (mem[0x2006] & 0xff00);
+        ppu_write_addr &= 0xff00;
+        ppu_write_addr |= data;
+        mem[0x2006] = data;
       }
-      ppuaddrCnt++;
-      ppuaddrCnt %= 2;
+      ppuaddrCnt ^= 1;
     } else if(addr == 0x2007) {
       // PPUDATAレジスタに書き込むことで、PPUADDRレジスタから参照したアドレスへ、VRAMに間接的に書き込む
-      writeVRAM(mem[0x2006], num);
+      writeVRAM(ppu_write_addr, data);
       if(mem[0x2000] & (1 << 2)) {
-        mem[0x2006] += 32;
+        ppu_write_addr += 32;
       } else {
-        mem[0x2006]++;
+        ppu_write_addr++;
       }
     } else {
-      mem[addr] = num;
+      mem[addr] = data;
     }
   } else {
-    mem[addr] = num;
+    mem[addr] = data;
   }
 }
 
 // PCレジスタをインクリメントし、そのアドレスのデータを返す
-int CPU::fetch() {
-  int res = read(registers["PC"]++);
+Byte CPU::fetch() {
+  Byte res = read(registers["PC"]++);
   return res;
 }
 
 // スタックに値をプッシュ
-void CPU::push_stack(int data) {
-  // cout << "push ";
-  hex(data);
+void CPU::push_stack(Byte data) {
   mem[STACK_START + registers["S"]] = data;
   registers["S"]--;
 }
 
 // スタックからpop
-int CPU::pop_stack() {
-  int res = mem[STACK_START + registers["S"] + 1];
+Byte CPU::pop_stack() {
+  Byte res = mem[STACK_START + registers["S"] + 1];
   registers["S"]++;
   // cout << "pop ";
   hex(res);
@@ -181,10 +182,10 @@ void CPU::print_appeared_opelist() {
 void CPU::readROM() {
   // string filename = "./rom/sample1.dat";
   // string filename = "./rom/roulette.nes";
-  string filename = "./rom/NEStress.NES";
+  // string filename = "./rom/NEStress.NES";
   // string filename = "./rom/masmix.nes";
   // string filename = "./rom/TK20NTSC.NES";
-  // string filename = "./rom/hello.nes";
+  string filename = "./rom/hello.nes";
   // string filename = "./rom/firedemo.nes";
   ifstream ifs(filename, ios::in | ios::binary);
   if(!ifs) {
@@ -201,8 +202,7 @@ void CPU::readROM() {
   // iNESヘッダーからプログラムROMとキャラクターROMの範囲を割り出す(バイト単位)
   int CharacterRomStart = 0x0010 + (data[4] * 0x4000); // ヘッダー16バイト+プログラムデータのページ数*ページ数当たりのバイト数
   int CharacterRomEnd = CharacterRomStart + (data[5] * 0x2000);
-  CharacterRom.assign(data[5] * 0x2000, vector<int>(64));
-  // cout << CharacterRomStart << " " << CharacterRomEnd << endl;
+  CharacterRom.assign(data[5] * 0x2000, vector<Byte>(64));
 
   // プログラムをメモリにセット
   for(int i = 0; i < CharacterRomStart - 0x10; i++) {
@@ -222,13 +222,13 @@ void CPU::readROM() {
 }
 
 // レジスタをセット
-void CPU::setRegisters(int num) {
+void CPU::setRegisters(Byte num) {
   registers["negative"] = !!(num & (1 << 7));
   registers["zero"] = (num == 0);
 }
 
 // アドレッシングモードを判別し、データを取得
-int CPU::fetchOperand(string addr) {
+Address CPU::fetchOperand(string addr) {
   if(addr == "accumulator") {
     return -1;
   } else if(addr == "implied") {
@@ -238,49 +238,53 @@ int CPU::fetchOperand(string addr) {
   } else if(addr == "zeroPage") {
     return fetch();
   } else if(addr == "zeroPageX") {
-    int add = fetch();
-    return (add + (registers["X"] & 0xFF)) & 0xff;
+    Address add = fetch();
+    return add + registers["X"];
   } else if(addr == "zeroPageY") {
-    int add = fetch();
-    return (add + (registers["Y"] & 0xFF)) & 0xff;
+    Address add = fetch();
+    return add + registers["Y"];
   } else if(addr == "absolute") {
-    int add1 = fetch();
-    int add2 = fetch() << 8;
-    return (add1 + add2) & 0xffff;
+    Address add1 = fetch();
+    Address add2 = static_cast<Address>(fetch()) << 8;
+    return add1 + add2;
   } else if(addr == "absoluteX") {
-    int add1 = fetch();
-    int add2 = fetch() << 8;
-    return (add1 + add2 + registers["X"]) & 0xffff;
+    Address add1 = fetch();
+    Address add2 = static_cast<Address>(fetch()) << 8;
+    return add1 + add2 + registers["X"];
   } else if(addr == "absoluteY") {
-    int add1 = fetch();
-    int add2 = fetch() << 8;
-    return (add1 + add2 + registers["Y"]) & 0xffff;
+    Address add1 = fetch();
+    Address add2 = static_cast<Address>(fetch()) << 8;
+    return add1 + add2 + registers["Y"];
   } else if(addr == "preIndexedIndirect") {
-    int addradd = (fetch() + registers["X"]) & 0xff;
-    return ((mem[addradd + 1] << 8) + mem[addradd]) & 0xffff;
+    Address addradd = fetch() + registers["X"];
+    Address addr1 = mem[addradd];
+    Address addr2 = static_cast<Address>(mem[addradd + 1]) << 8;
+    return addr1 + addr2;
   } else if(addr == "postIndexedIndirect") {
-    int addradd = fetch();
-    int add1 = mem[addradd];
-    int add2 = mem[addradd + 1] << 8;
-    int offset = registers["Y"];
-    return (add1 + add2 + offset) & 0xffff;
+    Address addradd = fetch();
+    Address addr1 = mem[addradd];
+    Address addr2 = static_cast<Address>(mem[addradd + 1]) << 8;
+    Address offset = registers["Y"];
+    return addr1 + addr2 + offset;
   } else if(addr == "indirectAbsolute") {
-    int addradd_low = fetch();
-    int addradd_high = fetch();
-    return (mem[addradd_low + (addradd_high << 8)] + mem[(addradd_low + 1) & 0xff + (addradd_high) << 8]) & 0xffff;
+    Address addradd_low = fetch();
+    Address addradd_high = fetch();
+    Address addr1 = mem[addradd_low + (addradd_high << 8)];
+    Address addr2 = mem[(addradd_low + 1) & 0xff + (addradd_high) << 8];
+    return addr1 + addr2;
   } else if(addr == "relative") {
-    int addr = fetch();
+    Address addr = static_cast<Address>(fetch());
     // 8bitのaddrを16bitの２の補数表現に拡張
     if((addr & (1 << 7))) {
       addr = 0b1111111100000000 | addr;
     }
-    return (addr + registers["PC"]) & 0xffff;
+    return addr + registers["PC"];
   }
   return -1;
 }
 
 // 命令コード、データから命令を実行
-void CPU::exec(string opeName, int data, string mode) {
+void CPU::exec(string opeName, Address data, string mode) {
   if(opeName == "LDA") { // データをレジスタにロード
     if(mode == "immediate") {
       registers["A"] = data;

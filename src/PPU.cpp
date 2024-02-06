@@ -89,7 +89,7 @@ vector<vector<vector<int>>> CPU::setPixcels() {
   for(int i = 0; i < 30; i++) {
     for(int j = 0; j < 32; j++) {
       int paletteNUM = paretTable[i / 2][j / 2];
-      vector<int> sprite = CharacterRom[nameTable[i][j]];
+      vector<Byte> sprite = CharacterRom[nameTable[i][j]];
       vector<int> pallete = getBackGroundColor(paletteNUM);
       for(int di = 0; di < 8; di++) {
         for(int dj = 0; dj < 8; dj++) {
@@ -110,7 +110,7 @@ vector<vector<vector<int>>> CPU::setPixcels() {
     int y = spriteram[i] + 1;
     int x = spriteram[i + 3];
     int palletenum = spriteram[i + 2] & 0b11;
-    vector<int> sprite = CharacterRom[spriteram[i + 1]];
+    vector<Byte> sprite = CharacterRom[spriteram[i + 1]];
     vector<int> pallete = getSpriteColor(palletenum);
     for(int dy = 0; dy < 8; dy++) {
       for(int dx = 0; dx < 8; dx++) {
@@ -125,5 +125,6 @@ vector<vector<vector<int>>> CPU::setPixcels() {
       }
     }
   }
+
   return res;
 }
