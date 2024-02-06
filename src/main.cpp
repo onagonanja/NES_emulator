@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      for (int i = 0; i < 1000; i++) {
+      for (int i = 0; i < 100; i++) {
          cpu->run();
       }
 

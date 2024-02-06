@@ -78,13 +78,22 @@ class CPU {
    // vram
    int vram[16384] = {0};
 
+   // spriteram
+   int spriteram[256] = {0};
+
    int readVRAM(int addr);
 
    void writeVRAM(int addr, int val);
 
+   int readSpriteRAM(int addr);
+
+   void writeSpriteRAM(int addr, int num);
+
    vector<vector<vector<int>>> setPixcels();
 
-   vector<int> getColor(int num);
+   vector<int> getBackGroundColor(int num);
+
+   vector<int> getSpriteColor(int num);
 
    //-----------------------Debug-------------------------//
 
