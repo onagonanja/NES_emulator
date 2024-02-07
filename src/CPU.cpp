@@ -160,13 +160,13 @@ void CPU::pop_status_registers() {
 void CPU::run() {
   // cout << hex << setw(4) << setfill('0') << count++ << " ";
   test_option();
-  int code = fetch();
+  Byte code = fetch();
   map<string, string> ope = opelist[code];
   string opeName = ope["baseName"];
   string addressing = ope["mode"];
   // cout << opeName << " ";
   ope_appeared.insert(opeName);
-  int data = fetchOperand(addressing);
+  Address data = fetchOperand(addressing);
   exec(opeName, data, addressing);
   // cout << "\n";
 }

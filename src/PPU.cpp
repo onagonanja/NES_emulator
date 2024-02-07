@@ -5,7 +5,7 @@
 using namespace std;
 
 // VRAMを読み込む
-int CPU::readVRAM(int addr) {
+Byte CPU::readVRAM(Address addr) {
   // 0x3F10,0x3F14,0x3F18,0x3F1Cは0x3F00,0x3F04,0x3F08,0x3F0Cのミラー
   if(addr == 0x3F10 || addr == 0x3F14 || addr == 0x3F18 || addr == 0x3F1C) {
     return vram[addr - 0x10];
@@ -19,7 +19,7 @@ int CPU::readVRAM(int addr) {
 }
 
 // VRAMに書き込む
-void CPU::writeVRAM(int addr, int num) {
+void CPU::writeVRAM(Address addr, Byte num) {
   // cout << "writeVRAMbefore(" << hex << setw(4) << setfill('0') << addr << "," << hex << setw(4) << setfill('0') << num << ") ";
   if(0x3000 <= addr && addr <= 0x3eff) {
     addr = 0x2000 + (addr - 0x3000) % 0xF00;
@@ -30,28 +30,28 @@ void CPU::writeVRAM(int addr, int num) {
   // cout << "writeVRAMafter(" << hex << setw(4) << setfill('0') << addr << "," << hex << setw(4) << setfill('0') << num << ") ";
 }
 
-int CPU::readSpriteRAM(int addr) { return spriteram[addr]; }
+Byte CPU::readSpriteRAM(Address addr) { return spriteram[addr]; }
 
-void CPU::writeSpriteRAM(int addr, int num) {
+void CPU::writeSpriteRAM(Address addr, Byte num) {
   spriteram[addr] = num;
   // cout << "write sprite:" << addr << " " << num << endl;
 }
 
-vector<int> CPU::getBackGroundColor(int num) {
-  vector<int> res(4);
-  res[0] = readVRAM(0x3f00 + num * 4);
-  res[1] = readVRAM(0x3f00 + num * 4 + 1);
-  res[2] = readVRAM(0x3f00 + num * 4 + 2);
-  res[3] = readVRAM(0x3f00 + num * 4 + 3);
+vector<Byte> CPU::getBackGroundColor(Byte data) {
+  vector<Byte> res(4);
+  res[0] = readVRAM(0x3f00 + data * 4);
+  res[1] = readVRAM(0x3f00 + data * 4 + 1);
+  res[2] = readVRAM(0x3f00 + data * 4 + 2);
+  res[3] = readVRAM(0x3f00 + data * 4 + 3);
   return res;
 }
 
-vector<int> CPU::getSpriteColor(int num) {
-  vector<int> res(4);
-  res[0] = readVRAM(0x3f10 + num * 4);
-  res[1] = readVRAM(0x3f10 + num * 4 + 1);
-  res[2] = readVRAM(0x3f10 + num * 4 + 2);
-  res[3] = readVRAM(0x3f10 + num * 4 + 3);
+vector<Byte> CPU::getSpriteColor(Byte data) {
+  vector<Byte> res(4);
+  res[0] = readVRAM(0x3f10 + data * 4);
+  res[1] = readVRAM(0x3f10 + data * 4 + 1);
+  res[2] = readVRAM(0x3f10 + data * 4 + 2);
+  res[3] = readVRAM(0x3f10 + data * 4 + 3);
   return res;
 }
 
@@ -90,7 +90,7 @@ vector<vector<vector<int>>> CPU::setPixcels() {
     for(int j = 0; j < 32; j++) {
       int paletteNUM = paretTable[i / 2][j / 2];
       vector<Byte> sprite = CharacterRom[nameTable[i][j]];
-      vector<int> pallete = getBackGroundColor(paletteNUM);
+      vector<Byte> pallete = getBackGroundColor(paletteNUM);
       for(int di = 0; di < 8; di++) {
         for(int dj = 0; dj < 8; dj++) {
           res[i * 8 + di][j * 8 + dj][0] = colors[pallete[sprite[di * 8 + dj]]][0];
@@ -111,7 +111,7 @@ vector<vector<vector<int>>> CPU::setPixcels() {
     int x = spriteram[i + 3];
     int palletenum = spriteram[i + 2] & 0b11;
     vector<Byte> sprite = CharacterRom[spriteram[i + 1]];
-    vector<int> pallete = getSpriteColor(palletenum);
+    vector<Byte> pallete = getSpriteColor(palletenum);
     for(int dy = 0; dy < 8; dy++) {
       for(int dx = 0; dx < 8; dx++) {
         int absY = y + dy;
