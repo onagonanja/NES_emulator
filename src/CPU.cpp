@@ -22,22 +22,22 @@ void CPU::test_option() {
 
 // リセット
 void CPU::reset() {
-  int pc_lowByte = read(0xFFFC);
-  int pc_highByte = read(0xFFFD);
-  registers["PC"] = (pc_highByte << 8) | pc_lowByte;
+  Address pc_lowByte = read(0xFFFC);
+  Address pc_highByte = read(0xFFFD);
+  r_PC = (pc_highByte << 8) | pc_lowByte;
   push_status_registers();
-  registers["interrupt"] = true;
-  // cout << registers["PC"] << endl;
+  r_status["interrupt"] = true;
+  // cout << r_PC << endl;
 }
 
 // Non-Markable-Interrupt
 void CPU::NMI() {
   int pc_lowByte = read(0xFFFA);
   int pc_highByte = read(0xFFFB);
-  registers["PC"] = (pc_highByte << 8) | pc_lowByte;
+  r_PC = (pc_highByte << 8) | pc_lowByte;
   push_status_registers();
-  registers["interrupt"] = true;
-  // cout << registers["PC"] << endl;
+  r_status["interrupt"] = true;
+  // cout << r_PC << endl;
 }
 
 // メモリ読み込み
@@ -113,20 +113,20 @@ void CPU::write(Address addr, Byte data) {
 
 // PCレジスタをインクリメントし、そのアドレスのデータを返す
 Byte CPU::fetch() {
-  Byte res = read(registers["PC"]++);
+  Byte res = read(r_PC++);
   return res;
 }
 
 // スタックに値をプッシュ
 void CPU::push_stack(Byte data) {
-  mem[STACK_START + registers["S"]] = data;
-  registers["S"]--;
+  mem[STACK_START + r_SP] = data;
+  r_SP--;
 }
 
 // スタックからpop
 Byte CPU::pop_stack() {
-  Byte res = mem[STACK_START + registers["S"] + 1];
-  registers["S"]++;
+  Byte res = mem[STACK_START + r_SP + 1];
+  r_SP++;
   // cout << "pop ";
   hex(res);
   return res;
@@ -134,26 +134,21 @@ Byte CPU::pop_stack() {
 
 // ステータスレジスタをスタックに退避
 void CPU::push_status_registers() {
-  push_stack(registers["negative"]);
-  push_stack(registers["overflow"]);
-  push_stack(registers["reserved"]);
-  push_stack(registers["break"]);
-  push_stack(registers["decimal"]);
-  push_stack(registers["interrupt"]);
-  push_stack(registers["zero"]);
-  push_stack(registers["carry"]);
+  Byte data = r_status["negative"] << 7 | r_status["overflow"] << 6 | r_status["reserved"] << 5 | r_status["break"] << 4 | r_status["decimal"] << 3 | r_status["interrupt"] << 2 | r_status["zero"] << 1 | r_status["carry"];
+  push_stack(data);
 }
 
 // スタックからステータスレジスタを復帰
 void CPU::pop_status_registers() {
-  registers["carry"] = pop_stack();
-  registers["zero"] = pop_stack();
-  registers["interrupt"] = pop_stack();
-  registers["decimal"] = pop_stack();
-  registers["break"] = pop_stack();
-  registers["reserved"] = pop_stack();
-  registers["overflow"] = pop_stack();
-  registers["negative"] = pop_stack();
+  Byte data = pop_stack();
+  r_status["carry"] = data;
+  r_status["zero"] = data >> 1 & 1;
+  r_status["interrupt"] = data >> 2 & 1;
+  r_status["decimal"] = data >> 3 & 1;
+  r_status["break"] = data >> 4 & 1;
+  r_status["reserved"] = data >> 5 & 1;
+  r_status["overflow"] = data >> 6 & 1;
+  r_status["negative"] = data >> 7 & 1;
 }
 
 // 実行
@@ -223,8 +218,8 @@ void CPU::readROM() {
 
 // レジスタをセット
 void CPU::setRegisters(Byte num) {
-  registers["negative"] = !!(num & (1 << 7));
-  registers["zero"] = (num == 0);
+  r_status["negative"] = !!(num & (1 << 7));
+  r_status["zero"] = (num == 0);
 }
 
 // アドレッシングモードを判別し、データを取得
@@ -239,10 +234,10 @@ Address CPU::fetchOperand(string addr) {
     return fetch();
   } else if(addr == "zeroPageX") {
     Address add = fetch();
-    return add + registers["X"];
+    return add + r_X;
   } else if(addr == "zeroPageY") {
     Address add = fetch();
-    return add + registers["Y"];
+    return add + r_Y;
   } else if(addr == "absolute") {
     Address add1 = fetch();
     Address add2 = static_cast<Address>(fetch()) << 8;
@@ -250,13 +245,13 @@ Address CPU::fetchOperand(string addr) {
   } else if(addr == "absoluteX") {
     Address add1 = fetch();
     Address add2 = static_cast<Address>(fetch()) << 8;
-    return add1 + add2 + registers["X"];
+    return add1 + add2 + r_X;
   } else if(addr == "absoluteY") {
     Address add1 = fetch();
     Address add2 = static_cast<Address>(fetch()) << 8;
-    return add1 + add2 + registers["Y"];
+    return add1 + add2 + r_Y;
   } else if(addr == "preIndexedIndirect") {
-    Address addradd = fetch() + registers["X"];
+    Address addradd = fetch() + r_X;
     Address addr1 = mem[addradd];
     Address addr2 = static_cast<Address>(mem[addradd + 1]) << 8;
     return addr1 + addr2;
@@ -264,7 +259,7 @@ Address CPU::fetchOperand(string addr) {
     Address addradd = fetch();
     Address addr1 = mem[addradd];
     Address addr2 = static_cast<Address>(mem[addradd + 1]) << 8;
-    Address offset = registers["Y"];
+    Address offset = r_Y;
     return addr1 + addr2 + offset;
   } else if(addr == "indirectAbsolute") {
     Address addradd_low = fetch();
@@ -278,7 +273,7 @@ Address CPU::fetchOperand(string addr) {
     if((addr & (1 << 7))) {
       addr = 0b1111111100000000 | addr;
     }
-    return addr + registers["PC"];
+    return addr + r_PC;
   }
   return -1;
 }
@@ -287,243 +282,243 @@ Address CPU::fetchOperand(string addr) {
 void CPU::exec(string opeName, Address data, string mode) {
   if(opeName == "LDA") { // データをレジスタにロード
     if(mode == "immediate") {
-      registers["A"] = data;
+      r_A = data;
     } else {
-      registers["A"] = read(data);
+      r_A = read(data);
     }
-    setRegisters(registers["A"]);
+    setRegisters(r_A);
   } else if(opeName == "LDX") {
     if(mode == "immediate") {
-      registers["X"] = data;
+      r_X = data;
     } else {
-      registers["X"] = read(data);
+      r_X = read(data);
     }
-    setRegisters(registers["X"]);
+    setRegisters(r_X);
   } else if(opeName == "LDY") {
     if(mode == "immediate") {
-      registers["Y"] = data;
+      r_Y = data;
     } else {
-      registers["Y"] = read(data);
+      r_Y = read(data);
     }
-    setRegisters(registers["Y"]);
+    setRegisters(r_Y);
   } else if(opeName == "STA") { // レジスタのデータをメモリにストア
-    write(data, registers["A"]);
+    write(data, r_A);
   } else if(opeName == "STX") {
-    write(data, registers["X"]);
+    write(data, r_X);
   } else if(opeName == "STY") {
-    write(data, registers["Y"]);
+    write(data, r_Y);
   } else if(opeName == "TAX") { // レジスタの値を別レジスタにコピー
-    registers["X"] = registers["A"];
-    setRegisters(registers["X"]);
+    r_X = r_A;
+    setRegisters(r_X);
   } else if(opeName == "TAY") {
-    registers["Y"] = registers["A"];
-    setRegisters(registers["Y"]);
+    r_Y = r_A;
+    setRegisters(r_Y);
   } else if(opeName == "TSX") {
-    registers["X"] = registers["S"];
-    setRegisters(registers["X"]);
+    r_X = r_SP;
+    setRegisters(r_X);
   } else if(opeName == "TXA") {
-    registers["A"] = registers["X"];
-    setRegisters(registers["X"]);
+    r_A = r_X;
+    setRegisters(r_X);
   } else if(opeName == "TXS") {
-    registers["S"] = registers["X"];
-    setRegisters(registers["S"]);
+    r_SP = r_X;
+    setRegisters(r_SP);
   } else if(opeName == "TYA") {
-    registers["A"] = registers["Y"];
-    setRegisters(registers["A"]);
+    r_A = r_Y;
+    setRegisters(r_A);
   } else if(opeName == "ADC") { // 演算命令いろいろ
     int calc;
     if(mode == "immediate") {
-      calc = data + registers["A"] + registers["carry"];
+      calc = data + r_A + r_status["carry"];
     } else {
-      calc = read(data) + registers["A"] + registers["carry"];
+      calc = read(data) + r_A + r_status["carry"];
     }
-    registers["carry"] = !!(calc > 0xff);
+    r_status["carry"] = !!(calc > 0xff);
     setRegisters(calc);
-    registers["A"] = calc & 0xff;
+    r_A = calc & 0xff;
   } else if(opeName == "AND") {
     int calc;
     if(mode == "immediate") {
-      calc = data & registers["A"];
+      calc = data & r_A;
     } else {
-      calc = read(data) & registers["A"];
+      calc = read(data) & r_A;
     }
     setRegisters(calc);
-    registers["A"] = calc & 0xff;
+    r_A = calc & 0xff;
   } else if(opeName == "ASL") {
     if(data == -1) {
-      registers["carry"] = !!(registers["A"] & (1 << 7));
-      registers["A"] = (registers["A"] << 1) & 0xff; // Aレジスタを左シフト(8bit以上は切り捨て) 7bit目をcarryフラグに代入
-      setRegisters(registers["A"]);
+      r_status["carry"] = !!(r_A & (1 << 7));
+      r_A = (r_A << 1) & 0xff; // Aレジスタを左シフト(8bit以上は切り捨て) 7bit目をcarryフラグに代入
+      setRegisters(r_A);
     } else {
-      registers["carry"] = !!(read(data) & (1 << 7));
+      r_status["carry"] = !!(read(data) & (1 << 7));
       write(data, (read(data) << 1) & 0xff); // 指定されたアドレスのbitを左シフト(8bit以上は切り捨て)
       setRegisters(read(data));
     }
   } else if(opeName == "BIT") {
-    registers["zero"] = !!(registers["A"] & read(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
-    registers["overflow"] = !!(read(data) & (1 << 6));   // メモリデータの6bit目をVレジスタに格納
-    registers["negative"] = !!(read(data) & (1 << 7));   // メモリデータの7bit目をNレジスタに格納
+    r_status["zero"] = !!(r_A & read(data));          // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
+    r_status["overflow"] = !!(read(data) & (1 << 6)); // メモリデータの6bit目をVレジスタに格納
+    r_status["negative"] = !!(read(data) & (1 << 7)); // メモリデータの7bit目をNレジスタに格納
   } else if(opeName == "CMP") {
     data = (mode == "immediate") ? data : read(data);
-    int diff = registers["A"] - data;
-    registers["carry"] = !!(diff >= 0);
+    int diff = r_A - data;
+    r_status["carry"] = !!(diff >= 0);
     setRegisters(diff);
   } else if(opeName == "CPX") {
     data = (mode == "immediate") ? data : read(data);
-    int diff = registers["X"] - data;
-    registers["carry"] = !!(diff >= 0);
+    int diff = r_X - data;
+    r_status["carry"] = !!(diff >= 0);
     setRegisters(diff);
   } else if(opeName == "CPY") {
     data = (mode == "immediate") ? data : read(data);
-    int diff = registers["Y"] - data;
-    registers["carry"] = !!(diff >= 0);
+    int diff = r_Y - data;
+    r_status["carry"] = !!(diff >= 0);
     setRegisters(diff);
   } else if(opeName == "DEC") {
     write(data, (read(data) + 0xff) & 0xff);
     setRegisters(read(data));
   } else if(opeName == "DEX") {
-    registers["X"] = (registers["X"] + 0xff) & 0xff;
-    setRegisters(registers["X"]);
-    hex(registers["X"]);
+    r_X = (r_X + 0xff) & 0xff;
+    setRegisters(r_X);
+    hex(r_X);
   } else if(opeName == "DEY") {
-    registers["Y"] = (registers["Y"] + 0xff) & 0xff;
-    setRegisters(registers["Y"]);
-    hex(registers["Y"]);
+    r_Y = (r_Y + 0xff) & 0xff;
+    setRegisters(r_Y);
+    hex(r_Y);
   } else if(opeName == "EOR") {
     data = (mode == "immediate" ? data : read(data));
-    registers["A"] = registers["A"] ^ data;
-    setRegisters(registers["A"]);
+    r_A = r_A ^ data;
+    setRegisters(r_A);
   } else if(opeName == "INC") {
     write(data, (read(data) + 1) & 0xff);
     setRegisters(read(data));
   } else if(opeName == "INX") {
-    registers["X"] = (registers["X"] + 1) & 0xff;
-    setRegisters(registers["X"]);
+    r_X = (r_X + 1) & 0xff;
+    setRegisters(r_X);
   } else if(opeName == "INY") {
-    registers["Y"] = (registers["Y"] + 1) & 0xff;
-    hex(registers["Y"]);
-    setRegisters(registers["Y"]);
+    r_Y = (r_Y + 1) & 0xff;
+    hex(r_Y);
+    setRegisters(r_Y);
   } else if(opeName == "LSR") {
     if(data == -1) {
-      registers["carry"] = (registers["A"] & 0b1);
-      registers["A"] = (registers["A"] >> 1) & 0xff;
-      setRegisters(registers["A"]);
+      r_status["carry"] = (r_A & 0b1);
+      r_A = (r_A >> 1) & 0xff;
+      setRegisters(r_A);
     } else {
-      registers["carry"] = (read(data) & 0b1);
+      r_status["carry"] = (read(data) & 0b1);
       write(data, (read(data) >> 1) & 0xff);
       setRegisters(read(data));
     }
   } else if(opeName == "ORA") {
     data = (mode == "immediate") ? data : read(data);
-    registers["A"] = registers["A"] | data;
-    setRegisters(registers["A"]);
+    r_A = r_A | data;
+    setRegisters(r_A);
   } else if(opeName == "ROL") {
     if(data == -1) {
-      int tmp = registers["A"];
-      registers["A"] = (registers["A"] << 1) | registers["carry"];
-      registers["carry"] = !!(tmp & 1 << 7);
-      setRegisters(registers["A"]);
-      registers["A"] = registers["A"] & 0xff;
+      int tmp = r_A;
+      r_A = (r_A << 1) | r_status["carry"];
+      r_status["carry"] = !!(tmp & 1 << 7);
+      setRegisters(r_A);
+      r_A = r_A & 0xff;
     } else {
       int tmp = read(data);
-      write(data, read(data) << 1 | registers["carry"]);
-      registers["carry"] = !!(tmp & 1 << 7);
+      write(data, read(data) << 1 | r_status["carry"]);
+      r_status["carry"] = !!(tmp & 1 << 7);
       setRegisters(read(data));
       write(data, read(data) & 0xff);
     }
   } else if(opeName == "ROR") {
     if(data == -1) {
-      int tmp = registers["A"];
-      registers["A"] = ((registers["A"] >> 1) | (registers["carry"] << 7)) & 0xff;
-      registers["carry"] = !!(tmp & 0b1);
-      setRegisters(registers["A"]);
+      int tmp = r_A;
+      r_A = ((r_A >> 1) | (r_status["carry"] << 7)) & 0xff;
+      r_status["carry"] = !!(tmp & 0b1);
+      setRegisters(r_A);
     } else {
       int tmp = read(data);
-      write(data, (read(data) >> 1 | (registers["carry"] << 7)) & 0xff);
-      registers["carry"] = !!(tmp & 0b1);
+      write(data, (read(data) >> 1 | (r_status["carry"] << 7)) & 0xff);
+      r_status["carry"] = !!(tmp & 0b1);
       setRegisters(read(data));
     }
   } else if(opeName == "SBC") {
     data = (mode == "immediate") ? data : read(data);
-    registers["A"] = registers["A"] + (~data + 1) + (0x100 - !registers["carry"]);
-    registers["carry"] = !!(registers["A"] > 0xff);
-    setRegisters(registers["A"]);
-    registers["A"] = registers["A"] & 0xff;
+    r_A = r_A + (~data + 1) + (0x100 - !r_status["carry"]);
+    r_status["carry"] = !!(r_A > 0xff);
+    setRegisters(r_A);
+    r_A = r_A & 0xff;
   } else if(opeName == "PHA") {
-    push_stack(registers["A"]);
+    push_stack(r_A);
   } else if(opeName == "PHP") {
-    push_stack(registers["P"]);
+    push_status_registers();
   } else if(opeName == "PLA") {
-    registers["A"] = pop_stack();
+    r_A = pop_stack();
   } else if(opeName == "PLP") {
-    registers["P"] = pop_stack();
+    pop_status_registers();
   } else if(opeName == "JMP") {
-    registers["PC"] = data;
+    r_PC = data;
   } else if(opeName == "JSR") {
-    int lowByte = (registers["PC"] - 1) & 0xff;
-    int highByte = ((registers["PC"] - 1) & 0xff00) >> 8;
+    int lowByte = (r_PC - 1) & 0xff;
+    int highByte = ((r_PC - 1) & 0xff00) >> 8;
     push_stack(highByte);
     push_stack(lowByte);
-    registers["PC"] = data;
+    r_PC = data;
   } else if(opeName == "RTS") {
     int lowByte = pop_stack();
     int highByte = pop_stack() << 8;
-    registers["PC"] = highByte + lowByte + 1;
+    r_PC = highByte + lowByte + 1;
   } else if(opeName == "RTI") {
     // 割り込みから復帰
     pop_status_registers();
     int pc_lowByte = pop_stack();
     int pc_highByte = pop_stack();
-    registers["PC"] = (pc_highByte << 8) | pc_lowByte;
+    r_PC = (pc_highByte << 8) | pc_lowByte;
   } else if(opeName == "BCC") {
-    if(!registers["carry"]) {
-      registers["PC"] = data;
+    if(!r_status["carry"]) {
+      r_PC = data;
     }
   } else if(opeName == "BCS") {
-    if(registers["carry"]) {
-      registers["PC"] = data;
+    if(r_status["carry"]) {
+      r_PC = data;
     }
   } else if(opeName == "BEQ") {
-    if(registers["zero"]) {
-      registers["PC"] = data;
+    if(r_status["zero"]) {
+      r_PC = data;
     }
   } else if(opeName == "BMI") {
-    if(registers["negative"]) {
-      registers["PC"] = data;
+    if(r_status["negative"]) {
+      r_PC = data;
     }
   } else if(opeName == "BNE") {
-    if(!registers["zero"]) {
-      registers["PC"] = data;
+    if(!r_status["zero"]) {
+      r_PC = data;
     }
   } else if(opeName == "BPL") {
-    if(!registers["negative"]) {
-      registers["PC"] = data;
+    if(!r_status["negative"]) {
+      r_PC = data;
     }
   } else if(opeName == "BVC") {
-    if(!registers["overflow"]) {
-      registers["PC"] = data;
+    if(!r_status["overflow"]) {
+      r_PC = data;
     }
   } else if(opeName == "BVS") {
-    if(registers["overflow"]) {
-      registers["PC"] = data;
+    if(r_status["overflow"]) {
+      r_PC = data;
     }
   } else if(opeName == "CLC") {
-    registers["carry"] = false;
+    r_status["carry"] = false;
   } else if(opeName == "CLD") {
-    registers["decimal"] = false;
+    r_status["decimal"] = false;
   } else if(opeName == "CLI") {
-    registers["interrupt"] = false;
+    r_status["interrupt"] = false;
   } else if(opeName == "CLV") {
-    registers["overflow"] = false;
+    r_status["overflow"] = false;
   } else if(opeName == "SEC") {
-    registers["carry"] = true;
+    r_status["carry"] = true;
   } else if(opeName == "SED") {
-    registers["decimal"] = true;
+    r_status["decimal"] = true;
   } else if(opeName == "SEI") {
-    registers["interrupt"] = true;
+    r_status["interrupt"] = true;
   }
   // 非公式
   else if(opeName == "NOPD") {
-    registers["PC"]++;
+    r_PC++;
   }
 }

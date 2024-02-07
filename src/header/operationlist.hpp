@@ -5,6 +5,7 @@
 #include <string>
 using namespace std;
 
+
 vector<map<string, string>> opelist =
     {
         {
@@ -164,7 +165,7 @@ vector<map<string, string>> opelist =
             {"mode", "absoluteX"},
         },
         {
-            {"fullName", "JSR_ABS"},
+            {"fullName", "JSr_ABS"},
             {"baseName", "JSR"},
             {"mode", "absolute"},
         },
@@ -381,12 +382,12 @@ vector<map<string, string>> opelist =
             {"mode", "absolute"},
         },
         {
-            {"fullName", "EOR_ABS"},
+            {"fullName", "EOr_ABS"},
             {"baseName", "EOR"},
             {"mode", "absolute"},
         },
         {
-            {"fullName", "LSR_ABS"},
+            {"fullName", "LSr_ABS"},
             {"baseName", "LSR"},
             {"mode", "absolute"},
         },
@@ -441,7 +442,7 @@ vector<map<string, string>> opelist =
             {"mode", "implied"},
         },
         {
-            {"fullName", "EOR_ABSY"},
+            {"fullName", "EOr_ABSY"},
             {"baseName", "EOR"},
             {"mode", "absoluteY"},
         },
@@ -461,12 +462,12 @@ vector<map<string, string>> opelist =
             {"mode", "implied"},
         },
         {
-            {"fullName", "EOR_ABSX"},
+            {"fullName", "EOr_ABSX"},
             {"baseName", "EOR"},
             {"mode", "absoluteX"},
         },
         {
-            {"fullName", "LSR_ABSX"},
+            {"fullName", "LSr_ABSX"},
             {"baseName", "LSR"},
             {"mode", "absoluteX"},
         },
@@ -542,7 +543,7 @@ vector<map<string, string>> opelist =
             {"mode", "absolute"},
         },
         {
-            {"fullName", "ROR_ABS"},
+            {"fullName", "ROr_ABS"},
             {"baseName", "ROR"},
             {"mode", "absolute"},
         },
@@ -622,7 +623,7 @@ vector<map<string, string>> opelist =
             {"mode", "absoluteX"},
         },
         {
-            {"fullName", "ROR_ABSX"},
+            {"fullName", "ROr_ABSX"},
             {"baseName", "ROR"},
             {"mode", "absoluteX"},
         },

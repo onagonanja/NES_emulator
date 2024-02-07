@@ -14,12 +14,19 @@ class CPU {
 public:
   //-----------------------CPU-----------------------//
 
-  // レジスタ
-  map<string, Address> registers = {
-      {"A", 0x00}, {"X", 0x00}, {"Y", 0x00}, {"P", 0x00}, {"S", 0xff}, {"PC", 0x0000}, {"negative", false}, {"overflow", false}, {"reserved", true}, {"break", true}, {"decimal", false}, {"interrupt", true}, {"zero", false}, {"carry", false},
+  // registers
+  Byte r_A = 0x00;
+  Byte r_X = 0x00;
+  Byte r_Y = 0x00;
+  Byte r_SP = 0xff;
+  Address r_PC = 0x0000;
+
+  // starus register
+  map<string, Byte> r_status = {
+      {"negative", 0}, {"overflow", 0}, {"reserved", 0}, {"break", 0}, {"decimal", 0}, {"interrupt", 0}, {"zero", 0}, {"carry", 0},
   };
 
-  // メモリ
+  // RAM
   Byte mem[65536] = {0};
 
   // キャラクターRom
