@@ -182,10 +182,10 @@ void CPU::print_appeared_opelist() {
 void CPU::readROM() {
   // string filename = "./rom/sample1.dat";
   // string filename = "./rom/roulette.nes";
-  // string filename = "./rom/NEStress.NES";
+  string filename = "./rom/NEStress.NES";
   // string filename = "./rom/masmix.nes";
   // string filename = "./rom/TK20NTSC.NES";
-  string filename = "./rom/hello.nes";
+  // string filename = "./rom/hello.nes";
   // string filename = "./rom/firedemo.nes";
   ifstream ifs(filename, ios::in | ios::binary);
   if(!ifs) {
