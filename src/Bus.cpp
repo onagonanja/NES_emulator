@@ -154,8 +154,6 @@ namespace NES {
       addr = 0x3f00 + ((addr - 0x3f20) % 0x20);
     }
     vram[addr] = num;
-    cout << "writeVRAMafter(" << hex << setw(4) << setfill('0') << addr << ","
-         << hex << setw(4) << setfill('0') << num << ") ";
   }
 
   Byte Bus::readSpriteRAM(Address addr) { return spriteram[addr]; }
