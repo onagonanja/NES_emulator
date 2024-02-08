@@ -1,5 +1,9 @@
+#include "header/Bus.hpp"
 #include "header/CPU.hpp"
+#include "header/PPU.hpp"
 #include "header/defs.hpp"
+#include "header/Logger.hpp"
+
 #include <SDL.h>
 #include <iomanip>
 #include <iostream>
@@ -12,20 +16,29 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  SDL_Window *window = SDL_CreateWindow("Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_X_MIN * PIXEL_SIZE, SCREEN_Y_MIN * PIXEL_SIZE, 0);
-  SDL_Renderer *gRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  SDL_Window *window = SDL_CreateWindow(
+      "Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+      SCREEN_X_MIN * PIXEL_SIZE, SCREEN_Y_MIN * PIXEL_SIZE, 0);
+
+  SDL_Renderer *gRenderer =
+      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   if(window == NULL) {
     SDL_Quit();
     return 1;
   }
 
-  bool quit = false;
-  NES::CPU *cpu = new NES::CPU;
-  cpu->readROM();
-  cpu->reset();
-  // cpu->NMI();
+  NES::Logger::clearLog();
 
+  bool quit = false;
+
+  NES::Bus bus = NES::Bus();
+  NES::CPU cpu = NES::CPU(bus);
+  NES::PPU ppu = NES::PPU(bus);
+
+  bus.readROM();
+  cpu.reset();
+  
   // mainloop
   while(!quit) {
     SDL_RenderClear(gRenderer);
@@ -33,17 +46,16 @@ int main(int argc, char *argv[]) {
 
     while(SDL_PollEvent(&e)) {
       if(SDL_QUIT == e.type) {
-        cpu->print_appeared_opelist();
         quit = true;
         break;
       }
     }
 
     for(int i = 0; i < 1000; i++) {
-      cpu->run();
+      cpu.run();
     }
 
-    std::vector<std::vector<std::vector<int>>> color = cpu->setPixcels();
+    std::vector<std::vector<std::vector<int>>> color = ppu.run();
 
     SDL_Rect fillRect;
     fillRect.h = PIXEL_SIZE;
@@ -52,7 +64,8 @@ int main(int argc, char *argv[]) {
       for(int x = 0; x < SCREEN_X_MIN; x++) {
         fillRect.x = x * PIXEL_SIZE;
         fillRect.y = y * PIXEL_SIZE;
-        SDL_SetRenderDrawColor(gRenderer, color[y][x][0], color[y][x][1], color[y][x][2], 0);
+        SDL_SetRenderDrawColor(gRenderer, color[y][x][0], color[y][x][1],
+                               color[y][x][2], 0);
         SDL_RenderFillRect(gRenderer, &fillRect);
       }
     }

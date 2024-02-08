@@ -9,7 +9,6 @@
 #define STACK_START 0x01000
 
 namespace NES {
-
   using Byte = std::uint8_t;
   using Address = std::uint16_t;
 } // namespace NES

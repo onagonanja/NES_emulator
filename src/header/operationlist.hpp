@@ -3,10 +3,46 @@
 
 #include <map>
 #include <string>
-using namespace std;
 
 namespace NES {
-  vector<map<string, string>> opelist = {
+
+  const int BRK = 0x00;
+  const int ORA_INDX = 0x01;
+  const int NOP = 0x02;
+  const int SLO_INDX = 0x03;
+  const int NOPD = 0x04;
+  const int ORA_ZERO = 0x05;
+  const int ASL_ZERO = 0x06;
+  const int SLO_ZERO = 0x07;
+  const int PHP = 0x08;
+  const int ORA_IMM = 0x09;
+  const int ASL = 0x0a;
+  const int NOPI = 0x0b;
+  const int ORA_ABS = 0x0c;
+  const int SLO_INDY = 0x0d;
+  const int ASL_ABS = 0x0e;
+  const int SLO_ABS = 0x0f;
+  const int BPL = 0x10;
+  const int ORA_INDY = 0x11;
+
+  const int IMPLIED = 0x00;
+  const int PREINDEXEDINDIRECT = 0x01;
+  const int ZERO_PAGE = 0x02;
+  const int ABSOLUTE = 0x03;
+  const int POSTINDEXEDINDIRECT = 0x04;
+  const int ZERO_PAGE_X = 0x05;
+  const int ABSOLUTE_Y = 0x06;
+  const int ABSOLUTE_X = 0x07;
+  const int RELATIVE = 0x08;
+  const int IMMEDIATE = 0x09;
+  const int ACCUMULATOR = 0x0a;
+  const int INDIRECT = 0x0b;
+  const int INDIRECT_ABSOLUTE = 0x0c;
+  const int ZERO_PAGE_Y = 0x0d;
+  const int ABSOLUTE_INDIRECT = 0x0e;
+  const int ZERO_PAGE_INDIRECT = 0x0f;
+
+  std::vector<std::map<std::string, std::string>> opelist = {
       {
           {"fullName", "BRK"},
           {"baseName", "BRK"},
