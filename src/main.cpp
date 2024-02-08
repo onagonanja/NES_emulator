@@ -2,6 +2,7 @@
 #include "header/CPU.hpp"
 #include "header/PPU.hpp"
 #include "header/defs.hpp"
+#include "header/Logger.hpp"
 
 #include <SDL.h>
 #include <iomanip>
@@ -27,6 +28,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  NES::Logger::clearLog();
+
   bool quit = false;
 
   NES::Bus bus = NES::Bus();
@@ -35,7 +38,7 @@ int main(int argc, char *argv[]) {
 
   bus.readROM();
   cpu.reset();
-
+  
   // mainloop
   while(!quit) {
     SDL_RenderClear(gRenderer);

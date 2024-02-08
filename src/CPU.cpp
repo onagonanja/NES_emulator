@@ -28,6 +28,7 @@ namespace NES {
 
   // reset
   void CPU::reset() {
+    test_option();
     Address pc_lowByte = bus.readRAM(0xFFFC);
     Address pc_highByte = bus.readRAM(0xFFFD);
     r_PC = (pc_highByte << 8) | pc_lowByte;
@@ -91,7 +92,6 @@ namespace NES {
 
   // 実行
   void CPU::run() {
-    test_option();
     Byte code = fetch();
     std::map<std::string, std::string> ope = opelist[code];
     std::string opeName = ope["baseName"];
@@ -103,7 +103,8 @@ namespace NES {
     ope_appeared.insert(opeName);
     Address data = fetchOperand(addressing);
     exec(opeName, data, addressing);
-    std::cout << "\n";
+    
+    Logger::logNewLine();
   }
 
   void CPU::print_appeared_opelist() {
