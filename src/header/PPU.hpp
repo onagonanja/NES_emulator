@@ -1,15 +1,27 @@
+#ifndef INCLUDED_PPU
+#define INCLUDED_PPU
+
+#include "defs.hpp"
+#include "bus.hpp"
+
+#include <vector>
+
 class CPU;
 
 namespace NES {
   class PPU {
+  private:
+    Bus &bus;
+
   public:
-    // VRAM
-    int vram[0x4000];
+    PPU(Bus &b);
 
-    // VRAMを読み込む
-    int readRam(int addr);
+    std::vector<std::vector<std::vector<int>>> run();
 
-    // VRAMに書き込む
-    void writeRam(int addr, int num);
+    std::vector<Byte> getBackGroundColor(Byte data);
+
+    std::vector<Byte> getSpriteColor(Byte data);
   };
 } // namespace NES
+
+#endif
