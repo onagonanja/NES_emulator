@@ -5,42 +5,103 @@
 #include <string>
 
 namespace NES {
+  enum Operations {
+    NOP,
+    BRK,
+    JSR,
+    RTI,
+    RTS,
+    JMP,
+    JMPI,
+    PHP,
+    PLP,
+    PHA,
+    PLA,
+    DEY,
+    DEX,
+    TAY,
+    INY,
+    INX,
+    CLC,
+    SEC,
+    CLI,
+    SEI,
+    TYA,
+    CLV,
+    CLD,
+    SED,
+    TXA,
+    TXS,
+    TAX,
+    TSX,
 
-  const int BRK = 0x00;
-  const int ORA_INDX = 0x01;
-  const int NOP = 0x02;
-  const int SLO_INDX = 0x03;
-  const int NOPD = 0x04;
-  const int ORA_ZERO = 0x05;
-  const int ASL_ZERO = 0x06;
-  const int SLO_ZERO = 0x07;
-  const int PHP = 0x08;
-  const int ORA_IMM = 0x09;
-  const int ASL = 0x0a;
-  const int NOPI = 0x0b;
-  const int ORA_ABS = 0x0c;
-  const int SLO_INDY = 0x0d;
-  const int ASL_ABS = 0x0e;
-  const int SLO_ABS = 0x0f;
-  const int BPL = 0x10;
-  const int ORA_INDY = 0x11;
+    ASL,
+    ROL,
+    LSR,
+    ROR,
+    STX,
+    LDX,
+    DEC,
+    INC,
 
-  const int IMPLIED = 0x00;
-  const int PREINDEXEDINDIRECT = 0x01;
-  const int ZERO_PAGE = 0x02;
-  const int ABSOLUTE = 0x03;
-  const int POSTINDEXEDINDIRECT = 0x04;
-  const int ZERO_PAGE_X = 0x05;
-  const int ABSOLUTE_Y = 0x06;
-  const int ABSOLUTE_X = 0x07;
-  const int RELATIVE = 0x08;
-  const int IMMEDIATE = 0x09;
-  const int ACCUMULATOR = 0x0a;
-  const int INDIRECT = 0x0b;
-  const int INDIRECT_ABSOLUTE = 0x0c;
-  const int ZERO_PAGE_Y = 0x0d;
-  const int ABSOLUTE_INDIRECT = 0x0e;
-  const int ZERO_PAGE_INDIRECT = 0x0f;
+    ORA,
+    AND,
+    EOR,
+    ADC,
+    STA,
+    LDA,
+    CMP,
+    SBC,
+
+    BIT,
+    STY,
+    LDY,
+    CPY,
+    CPX,
+
+    IRQ,
+    NMI,
+    BRK_,
+
+    SLO,
+    RLA,
+    SRE,
+    RRA,
+    SAX,
+    LAX,
+    DCP,
+    ISB,
+    BPL,
+    BMI,
+    BVC,
+    BVS,
+    BCC,
+    BCS,
+    BNE,
+    BEQ,
+
+    NOPD,
+    NOPI,
+  };
+
+  enum AddressingModes {
+    IMPLIED,
+    PREINDEXEDINDIRECT,
+    ZERO_PAGE,
+    ABSOLUTE,
+    POSTINDEXEDINDIRECT,
+    ZERO_PAGE_X,
+    ZERO_PAGE_Y,
+    ABSOLUTE_X,
+    ABSOLUTE_Y,
+    RELATIVE,
+    IMMEDIATE,
+    ACCUMULATOR,
+    INDIRECT,
+    INDIRECT_ABSOLUTE,
+    ABSOLUTE_INDIRECT,
+    ZERO_PAGE_INDIRECT,
+  };
 
   std::vector<std::map<std::string, std::string>> opelist = {
       {
@@ -1272,6 +1333,1238 @@ namespace NES {
           {"mode", "absoluteX"},
       },
   };
+
+  /*
+    std::vector<std::map<std::string, int>> opelist = {
+        {
+
+            {"baseName", BRK},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", ASL},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", PHP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", ASL},
+            {"mode", ACCUMULATOR},
+        },
+        {},
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", ASL},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BPL},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", ASL},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", CLC},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ORA},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", ASL},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", SLO},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", JSR},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", BIT},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", ROL},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", PLP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", ROL},
+            {"mode", ACCUMULATOR},
+        },
+        {},
+        {
+
+            {"baseName", BIT},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", ROL},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BMI},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", ROL},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", SEC},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", AND},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", ROL},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", RLA},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", RTI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", LSR},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", PHA},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", LSR},
+            {"mode", ACCUMULATOR},
+        },
+        {},
+        {
+
+            {"baseName", JMP},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", LSR},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BVC},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", LSR},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", CLI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", EOR},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", LSR},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", SRE},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", RTS},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", ROR},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", PLA},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", ROR},
+            {"mode", ACCUMULATOR},
+        },
+        {},
+        {
+
+            {"baseName", JMP},
+            {"mode", INDIRECT_ABSOLUTE},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", ROR},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BVS},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", ROR},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", SEI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ADC},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", ROR},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", RRA},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", STA},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SAX},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", STY},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", STA},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", STX},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", SAX},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", DEY},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", TXA},
+            {"mode", IMPLIED},
+        },
+        {},
+        {
+
+            {"baseName", STY},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", STA},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", STX},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", SAX},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BCC},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", STA},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {},
+        {
+
+            {"baseName", STY},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", STA},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", STX},
+            {"mode", ZERO_PAGE_Y},
+        },
+        {
+
+            {"baseName", SAX},
+            {"mode", ZERO_PAGE_Y},
+        },
+        {
+
+            {"baseName", TYA},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", STA},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", TXS},
+            {"mode", IMPLIED},
+        },
+        {},
+        {},
+        {
+
+            {"baseName", STA},
+            {"mode", ABSOLUTE_X},
+        },
+        {},
+        {},
+        {
+
+            {"baseName", LDY},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", LDX},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", LAX},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", LDY},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", LDX},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", LAX},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", TAY},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", TAX},
+            {"mode", IMPLIED},
+        },
+        {},
+        {
+
+            {"baseName", LDY},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", LDX},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", LAX},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BCS},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", LAX},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", LDY},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", LDX},
+            {"mode", ZERO_PAGE_Y},
+        },
+        {
+
+            {"baseName", LAX},
+            {"mode", ZERO_PAGE_Y},
+        },
+        {
+
+            {"baseName", CLV},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", TSX},
+            {"mode", IMPLIED},
+        },
+        {},
+        {
+
+            {"baseName", LDY},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", LDA},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", LDX},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", LAX},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", CPY},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", CPY},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", DEC},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", INY},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", DEX},
+            {"mode", IMPLIED},
+        },
+        {},
+        {
+
+            {"baseName", CPY},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", DEC},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BNE},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", DEC},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", CLD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", CMP},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", DEC},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", DCP},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", CPX},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", PREINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", CPX},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", INC},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", ZERO_PAGE},
+        },
+        {
+
+            {"baseName", INX},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", IMMEDIATE},
+        },
+        {
+
+            {"baseName", CPX},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", INC},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", ABSOLUTE},
+        },
+        {
+
+            {"baseName", BEQ},
+            {"mode", RELATIVE},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", POSTINDEXEDINDIRECT},
+        },
+        {
+
+            {"baseName", NOPD},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", INC},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", ZERO_PAGE_X},
+        },
+        {
+
+            {"baseName", SED},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOP},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", ABSOLUTE_Y},
+        },
+        {
+
+            {"baseName", NOPI},
+            {"mode", IMPLIED},
+        },
+        {
+
+            {"baseName", SBC},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", INC},
+            {"mode", ABSOLUTE_X},
+        },
+        {
+
+            {"baseName", ISB},
+            {"mode", ABSOLUTE_X},
+        },
+    };*/
 
   const int cycles[] = {
       /*0x00*/ 7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,

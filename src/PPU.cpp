@@ -8,7 +8,7 @@
 
 namespace NES {
 
-  PPU::PPU(Bus &b) : bus(b) {}
+  PPU::PPU(Bus &b, ScreenBuff &sBuff) : bus(b), screenBuff(sBuff) {}
 
   std::vector<Byte> PPU::getBackGroundColor(Byte data) {
     std::vector<Byte> res(4);
@@ -29,7 +29,7 @@ namespace NES {
   }
 
   // vramからピクセルデータを取得してそのデータを返す
-  std::vector<std::vector<std::vector<int>>> PPU::run() {
+  void PPU::run() {
     /*------------------Render BackGround------------------------*/
 
     Byte nameTable[30][32]; //[縦][横]
@@ -57,9 +57,6 @@ namespace NES {
       }
     }
 
-    std::vector<std::vector<std::vector<int>>> res(
-        30 * 8, std::vector<std::vector<int>>(32 * 8, std::vector<int>(3)));
-
     for(int i = 0; i < 30; i++) {
       for(int j = 0; j < 32; j++) {
         Byte paletteNUM = paretTable[i / 2][j / 2];
@@ -67,11 +64,11 @@ namespace NES {
         std::vector<Byte> pallete = getBackGroundColor(paletteNUM);
         for(int di = 0; di < 8; di++) {
           for(int dj = 0; dj < 8; dj++) {
-            res[i * 8 + di][j * 8 + dj][0] =
+            screenBuff[i * 8 + di][j * 8 + dj][0] =
                 colors[pallete[sprite[di * 8 + dj]]][0];
-            res[i * 8 + di][j * 8 + dj][1] =
+            screenBuff[i * 8 + di][j * 8 + dj][1] =
                 colors[pallete[sprite[di * 8 + dj]]][1];
-            res[i * 8 + di][j * 8 + dj][2] =
+            screenBuff[i * 8 + di][j * 8 + dj][2] =
                 colors[pallete[sprite[di * 8 + dj]]][2];
           }
         }
@@ -96,13 +93,11 @@ namespace NES {
           if(absX >= 240 || absY >= 256) {
             continue;
           }
-          res[absX][absY][0] = colors[pallete[sprite[dx * 8 + dy]]][0];
-          res[absX][absY][1] = colors[pallete[sprite[dx * 8 + dy]]][1];
-          res[absX][absY][2] = colors[pallete[sprite[dx * 8 + dy]]][2];
+          screenBuff[absX][absY][0] = colors[pallete[sprite[dx * 8 + dy]]][0];
+          screenBuff[absX][absY][1] = colors[pallete[sprite[dx * 8 + dy]]][1];
+          screenBuff[absX][absY][2] = colors[pallete[sprite[dx * 8 + dy]]][2];
         }
       }
     }
-
-    return res;
   }
 } // namespace NES

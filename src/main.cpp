@@ -1,8 +1,8 @@
 #include "header/Bus.hpp"
 #include "header/CPU.hpp"
+#include "header/Logger.hpp"
 #include "header/PPU.hpp"
 #include "header/defs.hpp"
-#include "header/Logger.hpp"
 
 #include <SDL.h>
 #include <iomanip>
@@ -32,13 +32,17 @@ int main(int argc, char *argv[]) {
 
   bool quit = false;
 
+  NES::ScreenBuff screenBuff(
+      SCREEN_Y_MIN,
+      std::vector<std::vector<int>>(SCREEN_X_MIN, std::vector<int>(3, 0)));
+
   NES::Bus bus = NES::Bus();
   NES::CPU cpu = NES::CPU(bus);
-  NES::PPU ppu = NES::PPU(bus);
+  NES::PPU ppu = NES::PPU(bus, screenBuff);
 
   bus.readROM();
   cpu.reset();
-  
+
   // mainloop
   while(!quit) {
     SDL_RenderClear(gRenderer);
@@ -55,7 +59,7 @@ int main(int argc, char *argv[]) {
       cpu.run();
     }
 
-    std::vector<std::vector<std::vector<int>>> color = ppu.run();
+    ppu.run();
 
     SDL_Rect fillRect;
     fillRect.h = PIXEL_SIZE;
@@ -64,8 +68,8 @@ int main(int argc, char *argv[]) {
       for(int x = 0; x < SCREEN_X_MIN; x++) {
         fillRect.x = x * PIXEL_SIZE;
         fillRect.y = y * PIXEL_SIZE;
-        SDL_SetRenderDrawColor(gRenderer, color[y][x][0], color[y][x][1],
-                               color[y][x][2], 0);
+        SDL_SetRenderDrawColor(gRenderer, screenBuff[y][x][0],
+                               screenBuff[y][x][1], screenBuff[y][x][2], 0);
         SDL_RenderFillRect(gRenderer, &fillRect);
       }
     }

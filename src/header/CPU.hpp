@@ -67,7 +67,7 @@ namespace NES {
     void exec(std::string opeName, Address opeland, std::string mode);
 
     // 実行,
-    void run();
+    int run();
 
     //-----------------------Debug-------------------------//
 

@@ -3,6 +3,7 @@
 #include "header/defs.hpp"
 #include "header/operationlist.hpp"
 #include "header/Logger.hpp"
+#include "magic_enum.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -11,6 +12,7 @@
 #include <map>
 #include <string>
 #include <time.h>
+
 
 namespace NES {
 
@@ -91,7 +93,7 @@ namespace NES {
   }
 
   // 実行
-  void CPU::run() {
+  int CPU::run() {
     Byte code = fetch();
     std::map<std::string, std::string> ope = opelist[code];
     std::string opeName = ope["baseName"];
@@ -105,6 +107,8 @@ namespace NES {
     exec(opeName, data, addressing);
     
     Logger::logNewLine();
+
+    return cycles[code];
   }
 
   void CPU::print_appeared_opelist() {
