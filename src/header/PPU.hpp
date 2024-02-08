@@ -1,14 +1,15 @@
 class CPU;
 
-class PPU{
-    public:
-
-    //VRAM
+namespace NES {
+  class PPU {
+  public:
+    // VRAM
     int vram[0x4000];
 
-    //VRAMを読み込む
+    // VRAMを読み込む
     int readRam(int addr);
 
-    //VRAMに書き込む
+    // VRAMに書き込む
     void writeRam(int addr, int num);
-};
+  };
+} // namespace NES
