@@ -89,7 +89,7 @@ namespace NES {
 
     // WRAMのミラー領域に対する書き込み
     if(addr >= 0x0800 && addr < 0x2000) {
-      ram[addr % 0x0800] = data;
+      ram[0x0800 + addr % 0x0800] = data;
     }
     // PPUレジスタに対する書き込み
     else if(addr >= 0x2000 && addr < 0x4000) {
