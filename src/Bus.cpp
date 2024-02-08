@@ -8,13 +8,13 @@
 namespace NES {
 
   void Bus::readROM() {
-    // string filename = "./rom/sample1.dat";
-    // string filename = "./rom/roulette.nes";
+    // std::string filename = "./rom/sample1.dat";
+    // std::string filename = "./rom/roulette.nes";
     std::string filename = "./rom/NEStress.NES";
-    // string filename = "./rom/masmix.nes";
-    // string filename = "./rom/TK20NTSC.NES";
-    // string filename = "./rom/hello.nes";
-    // string filename = "./rom/firedemo.nes";
+    // std::string filename = "./rom/masmix.nes";
+    // std::string filename = "./rom/TK20NTSC.NES";
+    // std::string filename = "./rom/hello.nes";
+    // std::string filename = "./rom/firedemo.nes";
     std::ifstream ifs(filename, std::ios::in | std::ios::binary);
     if(!ifs) {
       // cout << "ファイルが開けません";

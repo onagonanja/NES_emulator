@@ -16,13 +16,13 @@ namespace NES {
     // cout << hex << setw(4) << setfill('0') << n << endl;
   }
 
-  // テスト用のoptionを記述
+  // options for debug
   void CPU::test_option() {
     // 常にVBRANK状態にする。
     mem[0x2002] = 0b10000000 | mem[0x2002];
   }
 
-  // リセット
+  // reset
   void CPU::reset() {
     Address pc_lowByte = read(0xFFFC);
     Address pc_highByte = read(0xFFFD);
@@ -42,7 +42,7 @@ namespace NES {
     // cout << r_PC << endl;
   }
 
-  // メモリ読み込み
+  // read ROM
   Byte CPU::read(Address addr) {
     Byte res;
     // ミラー領域に対する読み込み
@@ -164,7 +164,7 @@ namespace NES {
     // cout << hex << setw(4) << setfill('0') << count++ << " ";
     test_option();
     Byte code = fetch();
-    map<std::string, std::string> ope = opelist[code];
+    std::map<std::string, std::string> ope = opelist[code];
     std::string opeName = ope["baseName"];
     std::string addressing = ope["mode"];
     // cout << opeName << " ";
@@ -295,7 +295,7 @@ namespace NES {
   }
 
   // 命令コード、データから命令を実行
-  void CPU::exec(string opeName, Address data, string mode) {
+  void CPU::exec(std::string opeName, Address data, std::string mode) {
     if(opeName == "LDA") { // データをレジスタにロード
       if(mode == "immediate") {
         r_A = data;
