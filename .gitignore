@@ -5,3 +5,4 @@ hello_sdl.cpp
 *.exe
 *.dll
 rom/
+logs/
