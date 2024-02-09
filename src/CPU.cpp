@@ -182,7 +182,6 @@ namespace NES {
       }
       return addr + r_PC;
     }
-    return -1;
   }
 
   // 命令コード、データから命令を実行

@@ -12,13 +12,12 @@ using namespace std;
 namespace NES {
 
   void Bus::readROM() {
-    // std::string filename = "./rom/sample1.dat";
     // std::string filename = "./rom/roulette.nes";
-    std::string filename = "./rom/NEStress.NES";
+    // std::string filename = "./rom/NEStress.NES";
     // std::string filename = "./rom/masmix.nes";
     // std::string filename = "./rom/TK20NTSC.NES";
     // std::string filename = "./rom/hello.nes";
-    // std::string filename = "./rom/firedemo.nes";
+    std::string filename = "./rom/firedemo.nes";
     std::ifstream ifs(filename, std::ios::in | std::ios::binary);
     if(!ifs) {
       // cout << "ファイルが開けません";

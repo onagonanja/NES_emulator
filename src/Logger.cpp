@@ -11,6 +11,8 @@ namespace NES {
   namespace Logger {
     const bool isLog = false;
 
+    bool f = false;
+
     void clearLog() {
       if(!isLog)
         return;
@@ -25,10 +27,11 @@ namespace NES {
       outputfile << hex << setw(4) << setfill('0') << count << " ";
       outputfile << opeName << " ";
       outputfile.close();
+      f = true;
     }
 
     void logRead(std::string name, Address addr, Byte data) {
-      if(!isLog)
+      if(!isLog || !f)
         return;
       ofstream outputfile("logs/log.txt", ios::app);
       outputfile << "read" + name + "(" << hex << setw(4) << setfill('0')
@@ -38,7 +41,7 @@ namespace NES {
     }
 
     void logWrite(std::string name, Address addr, Byte data) {
-      if(!isLog)
+      if(!isLog || !f)
         return;
       ofstream outputfile("logs/log.txt", ios::app);
       outputfile << "write" + name + "(" << hex << setw(4) << setfill('0')
@@ -53,6 +56,7 @@ namespace NES {
       ofstream outputfile("logs/log.txt", ios::app);
       outputfile << endl;
       outputfile.close();
+      f = false;
     }
   } // namespace Logger
 } // namespace NES
