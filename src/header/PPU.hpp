@@ -19,7 +19,7 @@ namespace NES {
 
   const Address NAMETABLESTART[4] = {0x2000, 0x2400, 0x2800, 0x2C00};
 
-  enum PPUState { PreRender, Render, PostRender, VBlank, Hblank } ;
+  enum PPUState { PreRender, Render, PostRender, VBlank, Hblank };
 
   class PPU {
   private:
@@ -38,7 +38,9 @@ namespace NES {
 
     void drawBgPixel(int x, int y);
 
-    void setPixelColor(int x, int y,const int* color);
+    void setPixelColor(int x, int y, const int *color);
+
+    void drawAll();
 
     std::vector<Byte> getBackGroundPallet(Byte data);
 

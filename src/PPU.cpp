@@ -1,6 +1,6 @@
+#include "header/PPU.hpp"
 #include "defs.hpp"
 #include "header/CPU.hpp"
-#include "header/PPU.hpp"
 #include "header/Pallete.hpp"
 
 #include <iomanip>
@@ -94,9 +94,8 @@ namespace NES {
     return paretTable[y / 16][x / 16];
   }
 
-  // run PPU
-  void PPU::run() {
-
+  // for dev
+  void PPU::drawAll() {
     /*---------------------Render BackGround------------------------*/
 
     Byte nameTable[30][32]; //[縦][横]
@@ -153,6 +152,7 @@ namespace NES {
 
       std::vector<Byte> sprite = bus.readCharacterROM(bus.readSpriteRAM(i + 1));
       std::vector<Byte> pallete = getSpriteColor(palletenum);
+
       for(int dy = 0; dy < 8; dy++) {
         for(int dx = 0; dx < 8; dx++) {
           int absY = y + dy;
@@ -166,5 +166,11 @@ namespace NES {
         }
       }
     }
+  }
+
+  // run PPU
+  void PPU::run() {
+    // TODO: draw 1 pixel per 1 cycle
+    drawAll();
   }
 } // namespace NES
