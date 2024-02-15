@@ -3,6 +3,7 @@
 
 #include "defs.hpp"
 
+#include <SDL.h>
 #include <vector>
 
 namespace NES {
@@ -26,6 +27,9 @@ namespace NES {
     Byte scroll_y = 0;
 
   public:
+    void handleKeyDOWN(SDL_Event &event);
+    void handleKeyUP(SDL_Event &event);
+
     void readROM();
 
     Byte readRAM(Address addr);

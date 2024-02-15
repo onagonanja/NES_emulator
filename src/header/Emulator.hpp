@@ -14,10 +14,14 @@ namespace NES {
 
     void run();
 
+    void handleKeyDOWN(SDL_Event &event);
+    void handleKeyUP(SDL_Event &event);
+
   private:
     CPU cpu;
     PPU ppu;
     Bus bus;
+    
   };
 } // namespace NES
 

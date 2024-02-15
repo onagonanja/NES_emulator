@@ -11,13 +11,36 @@ using namespace std;
 
 namespace NES {
 
+  void Bus::handleKeyDOWN(SDL_Event &e) {
+    if(e.key.keysym.sym == SDLK_ESCAPE) {
+      std::cout << "ESC" << std::endl;
+      ram[0x4016] |= 0b00010000;
+    }else if(e.key.keysym.sym == SDLK_UP) {
+      ram[0x4016] |= 0b00001000;
+    }else if(e.key.keysym.sym == SDLK_DOWN) {
+      ram[0x4016] |= 0b00000100;
+    }
+  }
+
+  void Bus::handleKeyUP(SDL_Event &e) {
+    if(e.key.keysym.sym == SDLK_ESCAPE) {
+      ram[0x4016] &= 0b11101111;
+    }else if(e.key.keysym.sym == SDLK_UP) {
+      ram[0x4016] &= 0b11110111;
+    }else if(e.key.keysym.sym == SDLK_DOWN) {
+      ram[0x4016] &= 0b11111011;
+    }
+  }
+
   void Bus::readROM() {
     // std::string filename = "./rom/roulette.nes";
     // std::string filename = "./rom/NEStress.NES";
+    std::string filename = "./rom/nestest.nes";
     // std::string filename = "./rom/masmix.nes";
     // std::string filename = "./rom/TK20NTSC.NES";
     // std::string filename = "./rom/hello.nes";
-    std::string filename = "./rom/firedemo.nes";
+    // std::string filename = "./rom/nesmas.nes";
+    // std::string filename = "./rom/firedemo.nes";
     std::ifstream ifs(filename, std::ios::in | std::ios::binary);
     if(!ifs) {
       // cout << "ファイルが開けません";
@@ -35,6 +58,10 @@ namespace NES {
                                                          // ページ数当たりのバイト数
     int CharacterRomEnd = CharacterRomStart + (data[5] * 0x2000);
     characterRom.assign(data[5] * 0x2000, std::vector<Byte>(64));
+
+    std::cout << "CharacterRomStart: " << CharacterRomStart << std::endl;
+    std::cout << "CharacterRomEnd: " << CharacterRomEnd << std::endl;
+
 
     // プログラムをメモリにセット
     for(int i = 0; i < CharacterRomStart - 0x10; i++) {
@@ -70,11 +97,14 @@ namespace NES {
         ram[0x2006] += 1;
       }
       res = ram[addr];
+    }else if(addr >= 0xC000 && addr < 0xFFFF){
+      // for NROM-128
+      res = ram[addr - 0x4000];
     } else {
       res = ram[addr];
     }
 
-    Logger::logRead("RAM", addr, res);
+    //Logger::logRead("RAM", addr, res);
     return res;
   }
 

@@ -27,15 +27,29 @@ namespace NES {
     bus.writeRAM(0x2002, 0b10000000 | bus.readRAM(0x2002));
   }
 
+  void CPU::setStatusRegByByte(Byte data) {
+    r_status["carry"] = data & 1;
+    r_status["zero"] = data >> 1 & 1;
+    r_status["interrupt"] = data >> 2 & 1;
+    r_status["decimal"] = data >> 3 & 1;
+    r_status["break"] = data >> 4 & 1;
+    r_status["overflow"] = data >> 6 & 1;
+    r_status["negative"] = data >> 7 & 1;
+  }
+
   // reset
   void CPU::reset() {
     test_option();
     Address pc_lowByte = bus.readRAM(0xFFFC);
     Address pc_highByte = bus.readRAM(0xFFFD);
-    r_PC = (pc_highByte << 8) | pc_lowByte;
-    push_status_registers();
+
+    // r_PC = (pc_highByte << 8) | pc_lowByte;
+    r_PC = 0xC000; // for nestest.nes
+    r_SP = 0xFD;
+
     r_status["interrupt"] = true;
-    // cout << r_PC << endl;
+    r_status["reserved"] = 1;
+    push_status_registers();
   }
 
   // Non-Markable-Interrupt
@@ -51,6 +65,7 @@ namespace NES {
   // PCレジスタをインクリメントし、そのアドレスのデータを返す
   Byte CPU::fetch() {
     Byte res = bus.readRAM(r_PC++);
+    Logger::addFetchList(res);
     return res;
   }
 
@@ -79,30 +94,30 @@ namespace NES {
   // スタックからステータスレジスタを復帰
   void CPU::pop_status_registers() {
     Byte data = pop_stack();
-    r_status["carry"] = data;
-    r_status["zero"] = data >> 1 & 1;
-    r_status["interrupt"] = data >> 2 & 1;
-    r_status["decimal"] = data >> 3 & 1;
-    r_status["break"] = data >> 4 & 1;
-    r_status["reserved"] = data >> 5 & 1;
-    r_status["overflow"] = data >> 6 & 1;
-    r_status["negative"] = data >> 7 & 1;
+    setStatusRegByByte(data);
   }
 
   // 実行
   int CPU::run() {
+    Logger::clearFetchList();
+    Logger::logPCAddress(r_PC);
+
     Byte code = fetch();
     std::map<std::string, std::string> ope = opelist[code];
     std::string opeName = ope["baseName"];
     std::string addressing = ope["mode"];
 
-    Logger::logOperation(count, opeName);
-    count++;
-
     ope_appeared.insert(opeName);
     Address data = fetchOperand(addressing);
+
+    Logger::logOperation(opeName);
+
     exec(opeName, data, addressing);
 
+    Logger::logRegisters(r_A, r_X, r_Y,
+                         r_status["carry"] | r_status["zero"] << 1 | r_status["interrupt"] << 2 | r_status["decimal"] << 3 |
+                             r_status["break"] << 4 | r_status["reserved"] << 5 | r_status["overflow"] << 6 | r_status["negative"] << 7,
+                         r_PC, r_SP);
     Logger::logNewLine();
 
     return cycles[code];
@@ -189,6 +204,7 @@ namespace NES {
         r_A = bus.readRAM(data);
       }
       setRegisters(r_A);
+      Logger::logLoadByte(r_A);
     } else if(opeName == "LDX") {
       if(mode == "immediate") {
         r_X = data;
@@ -196,6 +212,7 @@ namespace NES {
         r_X = bus.readRAM(data);
       }
       setRegisters(r_X);
+      Logger::logLoadByte(r_X);
     } else if(opeName == "LDY") {
       if(mode == "immediate") {
         r_Y = data;
@@ -203,6 +220,7 @@ namespace NES {
         r_Y = bus.readRAM(data);
       }
       setRegisters(r_Y);
+      Logger::logLoadByte(r_Y);
     } else if(opeName == "STA") { // レジスタのデータをメモリにストア
       bus.writeRAM(data, r_A);
     } else if(opeName == "STX") {
@@ -227,7 +245,7 @@ namespace NES {
     } else if(opeName == "TYA") {
       r_A = r_Y;
       setRegisters(r_A);
-    } else if(opeName == "ADC") { // 演算命令いろいろ
+    } else if(opeName == "ADC") {
       int calc;
       if(mode == "immediate") {
         calc = data + r_A + r_status["carry"];
@@ -235,7 +253,8 @@ namespace NES {
         calc = bus.readRAM(data) + r_A + r_status["carry"];
       }
       r_status["carry"] = !!(calc > 0xff);
-      setRegisters(calc);
+      r_status["overflow"] = !((r_A ^ data) & 0x80) && ((r_A ^ calc) & 0x80);
+      setRegisters(calc & 0xff);
       r_A = calc & 0xff;
     } else if(opeName == "AND") {
       int calc;
@@ -245,7 +264,7 @@ namespace NES {
         calc = bus.readRAM(data) & r_A;
       }
       setRegisters(calc);
-      r_A = calc & 0xff;
+      r_A = calc;
     } else if(opeName == "ASL") {
       if(data == -1) {
         r_status["carry"] = !!(r_A & (1 << 7));
@@ -264,17 +283,17 @@ namespace NES {
       r_status["negative"] = !!(bus.readRAM(data) & (1 << 7)); // メモリデータの7bit目をNレジスタに格納
     } else if(opeName == "CMP") {
       data = (mode == "immediate") ? data : bus.readRAM(data);
-      int diff = r_A - data;
+      int diff = static_cast<int>(r_A) - static_cast<int>(data);
       r_status["carry"] = !!(diff >= 0);
       setRegisters(diff);
     } else if(opeName == "CPX") {
       data = (mode == "immediate") ? data : bus.readRAM(data);
-      int diff = r_X - data;
+      int diff = static_cast<int>(r_X) - static_cast<int>(data);
       r_status["carry"] = !!(diff >= 0);
       setRegisters(diff);
     } else if(opeName == "CPY") {
       data = (mode == "immediate") ? data : bus.readRAM(data);
-      int diff = r_Y - data;
+      int diff = static_cast<int>(r_Y) - static_cast<int>(data);
       r_status["carry"] = !!(diff >= 0);
       setRegisters(diff);
     } else if(opeName == "DEC") {
@@ -343,9 +362,11 @@ namespace NES {
         setRegisters(bus.readRAM(data));
       }
     } else if(opeName == "SBC") {
-      data = (mode == "immediate") ? data : bus.readRAM(data);
-      r_A = r_A + (~data + 1) + (0x100 - !r_status["carry"]);
-      r_status["carry"] = !!(r_A > 0xff);
+      int tmp = (mode == "immediate") ? data : bus.readRAM(data);
+      int result = r_A + (~tmp + 1) + (0xff + r_status["carry"]);
+      r_status["carry"] = !!(result > 0xff);
+      r_status["overflow"] = !!(r_A < 0x80 && (result & 0xff) > 0x80);
+      r_A = result & 0xff;
       setRegisters(r_A);
       r_A = r_A & 0xff;
     } else if(opeName == "PHA") {
@@ -354,6 +375,7 @@ namespace NES {
       push_status_registers();
     } else if(opeName == "PLA") {
       r_A = pop_stack();
+      setRegisters(r_A);
     } else if(opeName == "PLP") {
       pop_status_registers();
     } else if(opeName == "JMP") {

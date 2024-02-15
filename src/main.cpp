@@ -41,9 +41,13 @@ int main(int argc, char *argv[]) {
     SDL_Event e;
 
     while(SDL_PollEvent(&e)) {
-      if(SDL_QUIT == e.type) {
+      if(e.type == SDL_QUIT) {
         quit = true;
         break;
+      } else if(e.type == SDL_KEYDOWN) {
+        emu.handleKeyDOWN(e);
+      } else if(e.type == SDL_KEYUP) {
+        emu.handleKeyUP(e);
       }
     }
 

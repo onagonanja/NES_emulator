@@ -6,14 +6,14 @@
 #include <string>
 #include <vector>
 
-#include "defs.hpp"
 #include "Bus.hpp"
+#include "defs.hpp"
 
 namespace NES {
 
   class CPU {
   private:
-    // bus 
+    // bus
     Bus &bus;
 
     // registers
@@ -25,8 +25,7 @@ namespace NES {
 
     // starus register
     std::map<std::string, Byte> r_status = {
-        {"negative", 0}, {"overflow", 0},  {"reserved", 0}, {"break", 0},
-        {"decimal", 0},  {"interrupt", 0}, {"zero", 0},     {"carry", 0},
+        {"negative", 0}, {"overflow", 0}, {"reserved", 1}, {"break", 0}, {"decimal", 0}, {"interrupt", 0}, {"zero", 0}, {"carry", 0},
     };
 
   public:
@@ -41,6 +40,8 @@ namespace NES {
 
     // Non-Markable-Interrupt
     void NMI();
+
+    void setStatusRegByByte(Byte data);
 
     // 値に応じてレジスタを変化させる
     void setRegisters(Byte num);
