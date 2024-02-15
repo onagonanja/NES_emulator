@@ -25,7 +25,7 @@ namespace NES {
   private:
     Bus &bus;
     ScreenBuff &screenBuff;
-    PPUState state;
+    PPUState state = PreRender;
 
     int currentDrawPixcel = 0;
 

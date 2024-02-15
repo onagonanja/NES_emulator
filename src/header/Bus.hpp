@@ -20,7 +20,10 @@ namespace NES {
     std::vector<std::vector<Byte>> characterRom;
 
     Address vram_write_addr = 0;
-    bool vram_addr_state = false;
+    bool w = false;
+
+    Byte scroll_x = 0;
+    Byte scroll_y = 0;
 
   public:
     void readROM();
@@ -36,6 +39,9 @@ namespace NES {
 
     std::vector<Byte> readCharacterROM(Address addr);
     void writeCharacterROM(Address addr, std::vector<Byte> data);
+
+    Byte getScrollX();
+    Byte getScrollY();
   };
 } // namespace NES
 

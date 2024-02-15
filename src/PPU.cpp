@@ -29,8 +29,9 @@ namespace NES {
   }
 
   void PPU::setPPUState() {
+    currentDrawPixcel = (currentDrawPixcel + 1) % (CLOCKS_PER_LINE * SCANLINES_PER_FRAME);
     const int x = currentDrawPixcel % CLOCKS_PER_LINE;
-    const int y = currentDrawPixcel / SCANLINES_PER_FRAME;
+    const int y = currentDrawPixcel / CLOCKS_PER_LINE;
 
     if(y == SCREEN_Y_WIDTH) {
       state = PostRender;
@@ -46,7 +47,7 @@ namespace NES {
   }
 
   int PPU::getSpriteNum(int x, int y) {
-    int nameTableNum = ((bus.readRAM(0x2000) & 1) << 1) * 2 + (bus.readRAM(0x2000) & 1);
+    int nameTableNum = ((bus.readRAM(0x2000) >> 1) & 1) * 2 + (bus.readRAM(0x2000) & 1);
 
     int sprite_X = x / 8;
     int sprite_Y = y / 8;
@@ -55,9 +56,9 @@ namespace NES {
   }
 
   void PPU::setPixelColor(int x, int y, const int *color) {
-    screenBuff[x][y][0] = color[0];
-    screenBuff[x][y][1] = color[1];
-    screenBuff[x][y][2] = color[2];
+    screenBuff[y][x][0] = color[0];
+    screenBuff[y][x][1] = color[1];
+    screenBuff[y][x][2] = color[2];
   }
 
   void PPU::drawBgPixel(int x, int y) {
@@ -170,7 +171,20 @@ namespace NES {
 
   // run PPU
   void PPU::run() {
-    // TODO: draw 1 pixel per 1 cycle
-    drawAll();
+    switch (state)
+    {
+    case PreRender:
+      break;
+    case Render:
+      drawBgPixel(currentDrawPixcel % CLOCKS_PER_LINE, currentDrawPixcel / CLOCKS_PER_LINE);
+      break;
+    case PostRender:
+      break;
+    case VBlank:
+      break;
+    case Hblank:
+      break;
+    }
+    setPPUState();
   }
 } // namespace NES

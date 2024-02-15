@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 
   bool quit = false;
 
-  NES::ScreenBuff screenBuff(SCREEN_Y_MIN, std::vector<std::vector<int>>(SCREEN_X_MIN, std::vector<int>(3, 0)));
+  NES::ScreenBuff screenBuff(NES::SCREEN_Y_WIDTH, std::vector<std::vector<int>>(NES::SCREEN_X_WIDTH, std::vector<int>(3, 0)));
 
   NES::Emulator emu = NES::Emulator(screenBuff);
 
@@ -47,7 +47,9 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    emu.run();
+    for(int i = 0; i < 1000; i++) {
+      emu.run();
+    }
 
     SDL_Rect fillRect;
     fillRect.h = PIXEL_SIZE;

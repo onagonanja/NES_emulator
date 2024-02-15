@@ -1,5 +1,10 @@
 #include "Emulator.hpp"
 
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <string>
+
 namespace NES {
   Emulator::Emulator(ScreenBuff &screenBuff) : cpu(bus), ppu(bus, screenBuff) {
     bus.readROM();
@@ -7,9 +12,9 @@ namespace NES {
   }
 
   void Emulator::run() {
-    for(int i = 0; i < 100; i++) {
-      cpu.run();
+    int cycle = cpu.run();
+    for(int i = 0; i < 3 * cycle; i++) {
+      ppu.run();
     }
-    ppu.run();
   }
 } // namespace NES

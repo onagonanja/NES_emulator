@@ -97,9 +97,17 @@ namespace NES {
       } else if(addr == 0x2004) {
         writeSpriteRAM(ram[0x2003], data);
         ram[0x2003]++;
+      } else if(addr == 0x2005) {
+        // 書き込み回数が偶数回ならScroll_X,奇数ならScroll_Yを書き込む
+        if(w == 0) {
+          scroll_x = data;
+        } else {
+          scroll_y = data;
+        }
+        w ^= 1;
       } else if(addr == 0x2006) {
         // 書き込み回数が偶数回ならアドレスの上位8bit,奇数なら下位8bitを書き込む
-        if(vram_addr_state == 0) {
+        if(w == 0) {
           vram_write_addr &= 0x00ff;
           vram_write_addr |= static_cast<Address>(data) << 8;
           ram[0x2006] = data;
@@ -108,7 +116,7 @@ namespace NES {
           vram_write_addr |= data;
           ram[0x2006] = data;
         }
-        vram_addr_state ^= 1;
+        w ^= 1;
       } else if(addr == 0x2007) {
         // PPUDATAレジスタに書き込むことでPPUADDRレジスタから参照したアドレスへVRAMに間接的に書き込む
         writeVRAM(vram_write_addr, data);
@@ -162,4 +170,7 @@ namespace NES {
   std::vector<Byte> Bus::readCharacterROM(Address addr) { return characterRom[addr]; }
 
   void Bus::writeCharacterROM(Address addr, std::vector<Byte> data) { characterRom[addr] = data; }
+
+  Byte Bus::getScrollX() { return scroll_x; }
+  Byte Bus::getScrollY() { return scroll_y; }
 } // namespace NES
