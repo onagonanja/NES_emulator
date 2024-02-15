@@ -31,10 +31,8 @@ namespace NES {
     ifs.read((char *)data, size);
 
     // iNESヘッダーからプログラムROMとキャラクターROMの範囲を割り出す(バイト単位)
-    int CharacterRomStart =
-        0x0010 +
-        (data[4] * 0x4000); // ヘッダー16バイト + プログラムデータのページ数 *
-                            // ページ数当たりのバイト数
+    int CharacterRomStart = 0x0010 + (data[4] * 0x4000); // ヘッダー16バイト + プログラムデータのページ数 *
+                                                         // ページ数当たりのバイト数
     int CharacterRomEnd = CharacterRomStart + (data[5] * 0x2000);
     characterRom.assign(data[5] * 0x2000, std::vector<Byte>(64));
 
@@ -44,14 +42,12 @@ namespace NES {
     }
 
     // キャラクターROMのデータをセット
-    for(int i = 0; i * 16 < data[5] * 0x2000;
-        i++) { // 1スプライトごとに長さ64の配列にする
+    for(int i = 0; i * 16 < data[5] * 0x2000; i++) { // 1スプライトごとに長さ64の配列にする
       for(int j = 0; j < 8; j++) {
         int first = data[CharacterRomStart + i * 16 + j];
         int second = data[CharacterRomStart + i * 16 + 8 + j];
         for(int h = 0; h < 8; h++) {
-          characterRom[i][j * 8 + h] =
-              !!(first & 1 << (7 - h)) + !!(second & 1 << (7 - h)) * 2;
+          characterRom[i][j * 8 + h] = !!(first & 1 << (7 - h)) + !!(second & 1 << (7 - h)) * 2;
         }
       }
     }
@@ -163,11 +159,7 @@ namespace NES {
     spriteram[addr] = num;
   }
 
-  std::vector<Byte> Bus::readCharacterROM(Address addr) {
-    return characterRom[addr];
-  }
+  std::vector<Byte> Bus::readCharacterROM(Address addr) { return characterRom[addr]; }
 
-  void Bus::writeCharacterROM(Address addr, std::vector<Byte> data) {
-    characterRom[addr] = data;
-  }
+  void Bus::writeCharacterROM(Address addr, std::vector<Byte> data) { characterRom[addr] = data; }
 } // namespace NES

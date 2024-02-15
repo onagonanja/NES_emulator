@@ -1,8 +1,8 @@
-#include "header/Bus.hpp"
 #include "header/CPU.hpp"
+#include "header/Bus.hpp"
+#include "header/Logger.hpp"
 #include "header/defs.hpp"
 #include "header/operationlist.hpp"
-#include "header/Logger.hpp"
 #include "magic_enum.hpp"
 
 #include <filesystem>
@@ -12,7 +12,6 @@
 #include <map>
 #include <string>
 #include <time.h>
-
 
 namespace NES {
 
@@ -72,10 +71,8 @@ namespace NES {
 
   // ステータスレジスタをスタックに退避
   void CPU::push_status_registers() {
-    Byte data = r_status["negative"] << 7 | r_status["overflow"] << 6 |
-                r_status["reserved"] << 5 | r_status["break"] << 4 |
-                r_status["decimal"] << 3 | r_status["interrupt"] << 2 |
-                r_status["zero"] << 1 | r_status["carry"];
+    Byte data = r_status["negative"] << 7 | r_status["overflow"] << 6 | r_status["reserved"] << 5 | r_status["break"] << 4 |
+                r_status["decimal"] << 3 | r_status["interrupt"] << 2 | r_status["zero"] << 1 | r_status["carry"];
     push_stack(data);
   }
 
@@ -105,7 +102,7 @@ namespace NES {
     ope_appeared.insert(opeName);
     Address data = fetchOperand(addressing);
     exec(opeName, data, addressing);
-    
+
     Logger::logNewLine();
 
     return cycles[code];
@@ -171,8 +168,7 @@ namespace NES {
       Address addradd_low = fetch();
       Address addradd_high = fetch();
       Address addr1 = bus.readRAM(addradd_low + (addradd_high << 8));
-      Address addr2 =
-          bus.readRAM((addradd_low + 1) & 0xff + (addradd_high) << 8);
+      Address addr2 = bus.readRAM((addradd_low + 1) & 0xff + (addradd_high) << 8);
       return addr1 + addr2;
     } else if(addr == "relative") {
       Address addr = static_cast<Address>(fetch());
@@ -258,23 +254,14 @@ namespace NES {
         setRegisters(r_A);
       } else {
         r_status["carry"] = !!(bus.readRAM(data) & (1 << 7));
-        bus.writeRAM(
-            data,
-            (bus.readRAM(data) << 1) &
-                0xff); // 指定されたアドレスのbitを左シフト(8bit以上は切り捨て)
+        bus.writeRAM(data,
+                     (bus.readRAM(data) << 1) & 0xff); // 指定されたアドレスのbitを左シフト(8bit以上は切り捨て)
         setRegisters(bus.readRAM(data));
       }
     } else if(opeName == "BIT") {
-      r_status["zero"] = !!(
-          r_A &
-          bus.readRAM(
-              data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
-      r_status["overflow"] =
-          !!(bus.readRAM(data) &
-             (1 << 6)); // メモリデータの6bit目をVレジスタに格納
-      r_status["negative"] =
-          !!(bus.readRAM(data) &
-             (1 << 7)); // メモリデータの7bit目をNレジスタに格納
+      r_status["zero"] = !!(r_A & bus.readRAM(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
+      r_status["overflow"] = !!(bus.readRAM(data) & (1 << 6)); // メモリデータの6bit目をVレジスタに格納
+      r_status["negative"] = !!(bus.readRAM(data) & (1 << 7)); // メモリデータの7bit目をNレジスタに格納
     } else if(opeName == "CMP") {
       data = (mode == "immediate") ? data : bus.readRAM(data);
       int diff = r_A - data;
@@ -351,8 +338,7 @@ namespace NES {
         setRegisters(r_A);
       } else {
         int tmp = bus.readRAM(data);
-        bus.writeRAM(data, (bus.readRAM(data) >> 1 | (r_status["carry"] << 7)) &
-                               0xff);
+        bus.writeRAM(data, (bus.readRAM(data) >> 1 | (r_status["carry"] << 7)) & 0xff);
         r_status["carry"] = !!(tmp & 0b1);
         setRegisters(bus.readRAM(data));
       }

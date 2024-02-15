@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  SDL_Window *window = SDL_CreateWindow("Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                        SCREEN_X_MIN * PIXEL_SIZE, SCREEN_Y_MIN * PIXEL_SIZE, 0);
+  SDL_Window *window =
+      SDL_CreateWindow("Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_X_MIN * PIXEL_SIZE, SCREEN_Y_MIN * PIXEL_SIZE, 0);
 
   SDL_Renderer *gRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
@@ -31,8 +31,7 @@ int main(int argc, char *argv[]) {
 
   bool quit = false;
 
-  NES::ScreenBuff screenBuff(SCREEN_Y_MIN,
-                             std::vector<std::vector<int>>(SCREEN_X_MIN, std::vector<int>(3, 0)));
+  NES::ScreenBuff screenBuff(SCREEN_Y_MIN, std::vector<std::vector<int>>(SCREEN_X_MIN, std::vector<int>(3, 0)));
 
   NES::Emulator emu = NES::Emulator(screenBuff);
 
@@ -58,8 +57,7 @@ int main(int argc, char *argv[]) {
         fillRect.x = x * PIXEL_SIZE;
         fillRect.y = y * PIXEL_SIZE;
 
-        SDL_SetRenderDrawColor(gRenderer, screenBuff[y][x][0], screenBuff[y][x][1],
-                               screenBuff[y][x][2], 0);
+        SDL_SetRenderDrawColor(gRenderer, screenBuff[y][x][0], screenBuff[y][x][1], screenBuff[y][x][2], 0);
         SDL_RenderFillRect(gRenderer, &fillRect);
       }
     }
