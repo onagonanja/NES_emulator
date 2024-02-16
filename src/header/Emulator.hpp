@@ -17,6 +17,8 @@ namespace NES {
     void handleKeyDOWN(SDL_Event &event);
     void handleKeyUP(SDL_Event &event);
 
+    void getTestCode();
+
   private:
     CPU cpu;
     PPU ppu;

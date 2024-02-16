@@ -29,12 +29,12 @@ namespace NES {
 
   void CPU::setStatusRegByByte(Byte data) {
     r_status["carry"] = data & 1;
-    r_status["zero"] = data >> 1 & 1;
-    r_status["interrupt"] = data >> 2 & 1;
-    r_status["decimal"] = data >> 3 & 1;
-    r_status["break"] = data >> 4 & 1;
-    r_status["overflow"] = data >> 6 & 1;
-    r_status["negative"] = data >> 7 & 1;
+    r_status["zero"] = (data >> 1) & 1;
+    r_status["interrupt"] = (data >> 2) & 1;
+    r_status["decimal"] = (data >> 3) & 1;
+    r_status["break"] = (data >> 4) & 1;
+    r_status["overflow"] = (data >> 6) & 1;
+    r_status["negative"] = (data >> 7) & 1;
   }
 
   // reset
@@ -152,11 +152,11 @@ namespace NES {
     } else if(addr == "zeroPage") {
       return fetch();
     } else if(addr == "zeroPageX") {
-      Address add = fetch();
-      return add + r_X;
+      Byte add = fetch();
+      return (add + r_X) & 0xff;
     } else if(addr == "zeroPageY") {
-      Address add = fetch();
-      return add + r_Y;
+      Byte add = fetch();
+      return (add + r_Y) & 0xff;
     } else if(addr == "absolute") {
       Address add1 = fetch();
       Address add2 = static_cast<Address>(fetch()) << 8;

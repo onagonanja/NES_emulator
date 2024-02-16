@@ -45,6 +45,12 @@ int main(int argc, char *argv[]) {
         quit = true;
         break;
       } else if(e.type == SDL_KEYDOWN) {
+        /*
+        if(e.key.keysym.sym == SDLK_ESCAPE) {
+          quit = true;
+          emu.getTestCode();
+          break;
+        }*/
         emu.handleKeyDOWN(e);
       } else if(e.type == SDL_KEYUP) {
         emu.handleKeyUP(e);
