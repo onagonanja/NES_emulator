@@ -171,20 +171,26 @@ namespace NES {
 
   // run PPU
   void PPU::run() {
-    switch (state)
-    {
+    switch(state) {
     case PreRender:
       break;
     case Render:
-      drawBgPixel(currentDrawPixcel % CLOCKS_PER_LINE, currentDrawPixcel / CLOCKS_PER_LINE);
+      // drawBgPixel(currentDrawPixcel % CLOCKS_PER_LINE, currentDrawPixcel / CLOCKS_PER_LINE);
       break;
     case PostRender:
       break;
     case VBlank:
-      break;
+      if(vblankInterrupt != nullptr && currentDrawPixcel == (SCREEN_Y_WIDTH + 1) * CLOCKS_PER_LINE + 1) {
+        drawAll();
+        vblankInterrupt();
+        break;
+      }
     case Hblank:
       break;
     }
     setPPUState();
   }
+
+  void PPU::setVBlankInterrupt(std::function<void(void)> func) { vblankInterrupt = func; }
+
 } // namespace NES

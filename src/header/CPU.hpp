@@ -52,6 +52,9 @@ namespace NES {
     // スタックから値をpop
     Byte pop_stack();
 
+    // スタックにPCをpush
+    void push_PC();
+
     // ステータスレジスタをスタックに退避
     void push_status_registers();
 

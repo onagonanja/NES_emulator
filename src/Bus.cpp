@@ -14,23 +14,23 @@ namespace NES {
   void Bus::handleKeyDOWN(SDL_Event &e) {
     if(e.key.keysym.sym == SDLK_ESCAPE) {
       std::cout << "START" << std::endl;
-      ram[0x4016] |= 0b00010000;
     } else if(e.key.keysym.sym == SDLK_UP) {
       std::cout << "UP" << std::endl;
-      ram[0x4016] |= 0b00001000;
     } else if(e.key.keysym.sym == SDLK_DOWN) {
       std::cout << "DOWN" << std::endl;
-      ram[0x4016] |= 0b00000100;
+    } else if(e.key.keysym.sym == SDLK_LEFT) {
+      std::cout << "LEFT" << std::endl;
+    } else if(e.key.keysym.sym == SDLK_RIGHT) {
+      std::cout << "RIGHT" << std::endl;
     }
   }
 
   void Bus::handleKeyUP(SDL_Event &e) {
     if(e.key.keysym.sym == SDLK_ESCAPE) {
-      ram[0x4016] &= 0b11101111;
     } else if(e.key.keysym.sym == SDLK_UP) {
-      ram[0x4016] &= 0b11110111;
     } else if(e.key.keysym.sym == SDLK_DOWN) {
-      ram[0x4016] &= 0b11111011;
+    } else if(e.key.keysym.sym == SDLK_LEFT) {
+    } else if(e.key.keysym.sym == SDLK_RIGHT) {
     }
   }
 
@@ -98,6 +98,10 @@ namespace NES {
         ram[0x2006] += 1;
       }
       res = ram[addr];
+    } else if(addr == 0x4016) {
+      if(readCallbacks.find(addr) != readCallbacks.end()) {
+        res = readCallbacks[addr]();
+      }
     } else if(addr >= 0xC000 && addr < 0xFFFF) {
       // for NROM-128
       res = ram[addr - 0x4000];
@@ -119,6 +123,7 @@ namespace NES {
     }
     // PPUレジスタに対する書き込み
     else if(addr >= 0x2000 && addr < 0x4000) {
+
       addr = 0x2000 + (addr - 0x2000) % 8;
       if(addr == 0x2004) {
         // スプライトメモリアドレス(0x2003)で指定されたアドレスへデータを書き込む。
@@ -158,6 +163,10 @@ namespace NES {
         }
       } else {
         ram[addr] = data;
+      }
+    } else if(addr == 0x4016) {
+      if(writeCallbacks.find(addr) != writeCallbacks.end()) {
+        writeCallbacks[addr](data);
       }
     } else {
       ram[addr] = data;
@@ -204,4 +213,8 @@ namespace NES {
 
   Byte Bus::getScrollX() { return scroll_x; }
   Byte Bus::getScrollY() { return scroll_y; }
+
+  void Bus::setReadCallback(Address addr, std::function<Byte(void)> func) { readCallbacks[addr] = func; }
+
+  void Bus::setWriteCallback(Address addr, std::function<void(Byte)> func) { writeCallbacks[addr] = func; }
 } // namespace NES

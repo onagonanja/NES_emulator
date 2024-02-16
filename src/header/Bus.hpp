@@ -4,6 +4,8 @@
 #include "defs.hpp"
 
 #include <SDL.h>
+#include <functional>
+#include <unordered_map>
 #include <vector>
 
 namespace NES {
@@ -26,6 +28,9 @@ namespace NES {
     Byte scroll_x = 0;
     Byte scroll_y = 0;
 
+    std::unordered_map<Address, std::function<Byte(void)>> readCallbacks;
+    std::unordered_map<Address, std::function<void(Byte)>> writeCallbacks;
+
   public:
     void handleKeyDOWN(SDL_Event &event);
     void handleKeyUP(SDL_Event &event);
@@ -46,6 +51,9 @@ namespace NES {
 
     Byte getScrollX();
     Byte getScrollY();
+
+    void setReadCallback(Address addr, std::function<Byte(void)> func);
+    void setWriteCallback(Address addr, std::function<void(Byte)> func);
   };
 } // namespace NES
 

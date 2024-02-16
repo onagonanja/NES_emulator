@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define PIXEL_SIZE 3
+#define PIXEL_SIZE 1
 #define SCREEN_X_MIN 256
 #define SCREEN_Y_MIN 240
 #define STACK_START 0x0100

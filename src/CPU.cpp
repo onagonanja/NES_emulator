@@ -54,12 +54,15 @@ namespace NES {
 
   // Non-Markable-Interrupt
   void CPU::NMI() {
+    push_PC();
+    push_status_registers();
+
     int pc_lowByte = bus.readRAM(0xFFFA);
     int pc_highByte = bus.readRAM(0xFFFB);
     r_PC = (pc_highByte << 8) | pc_lowByte;
-    push_status_registers();
+
     r_status["interrupt"] = true;
-    // cout << r_PC << endl;
+    r_status["break"] = false;
   }
 
   // PCレジスタをインクリメントし、そのアドレスのデータを返す
@@ -82,6 +85,11 @@ namespace NES {
     // cout << "pop ";
     hex(res);
     return res;
+  }
+
+  void CPU::push_PC() {
+    push_stack((r_PC >> 8) & 0xff);
+    push_stack(r_PC & 0xff);
   }
 
   // ステータスレジスタをスタックに退避

@@ -9,7 +9,7 @@ using namespace std;
 
 namespace NES {
   namespace Logger {
-    const bool isLog = true;
+    const bool isLog = false;
 
     bool f = false;
 

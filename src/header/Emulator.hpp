@@ -3,14 +3,17 @@
 
 #include "Bus.hpp"
 #include "CPU.hpp"
+#include "Controller.hpp"
 #include "PPU.hpp"
+#include "Renderer.hpp"
 
+#include <SDL.h>
 #include <vector>
 
 namespace NES {
   class Emulator {
   public:
-    Emulator(ScreenBuff &screenBuff);
+    Emulator();
 
     void run();
 
@@ -23,7 +26,10 @@ namespace NES {
     CPU cpu;
     PPU ppu;
     Bus bus;
-    
+    ScreenBuff screenBuff;
+    Controller controller;
+    Renderer renderer;
+    SDL_Event e;
   };
 } // namespace NES
 

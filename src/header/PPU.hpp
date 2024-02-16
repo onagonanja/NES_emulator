@@ -5,6 +5,7 @@
 #include "defs.hpp"
 
 #include <vector>
+#include <functional>
 
 class CPU;
 
@@ -29,6 +30,8 @@ namespace NES {
 
     int currentDrawPixcel = 0;
 
+    std::function<void(void)> vblankInterrupt;
+
   public:
     PPU(Bus &b, ScreenBuff &screenBuff);
 
@@ -49,6 +52,8 @@ namespace NES {
     int getSpriteNum(int x, int y);
 
     int getPalletNum(int x, int y);
+
+    void setVBlankInterrupt(std::function<void(void)> func);
   };
 } // namespace NES
 
