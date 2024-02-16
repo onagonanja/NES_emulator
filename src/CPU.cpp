@@ -43,8 +43,8 @@ namespace NES {
     Address pc_lowByte = bus.readRAM(0xFFFC);
     Address pc_highByte = bus.readRAM(0xFFFD);
 
-    // r_PC = (pc_highByte << 8) | pc_lowByte;
-    r_PC = 0xC000; // for nestest.nes
+    r_PC = (pc_highByte << 8) | pc_lowByte;
+    // r_PC = 0xC000; // for nestest.nes
     r_SP = 0xFD;
 
     r_status["interrupt"] = true;
@@ -108,11 +108,12 @@ namespace NES {
     std::string addressing = ope["mode"];
 
     ope_appeared.insert(opeName);
-    Address data = fetchOperand(addressing);
+    int data = fetchOperand(addressing);
 
     Logger::logOperation(opeName);
+    // Logger::logAddressing(addressing);
 
-    exec(opeName, data, addressing);
+    exec(opeName, static_cast<Address>(data), addressing, data == -1);
 
     Logger::logRegisters(r_A, r_X, r_Y,
                          r_status["carry"] | r_status["zero"] << 1 | r_status["interrupt"] << 2 | r_status["decimal"] << 3 |
@@ -141,7 +142,7 @@ namespace NES {
   }
 
   // アドレッシングモードを判別し、データを取得
-  Address CPU::fetchOperand(std::string addr) {
+  int CPU::fetchOperand(std::string addr) {
     if(addr == "accumulator") {
       return -1;
     } else if(addr == "implied") {
@@ -169,22 +170,22 @@ namespace NES {
       Address add2 = static_cast<Address>(fetch()) << 8;
       return add1 + add2 + r_Y;
     } else if(addr == "preIndexedIndirect") {
-      Address addradd = fetch() + r_X;
+      Byte addradd = fetch() + r_X;
       Address addr1 = bus.readRAM(addradd);
-      Address addr2 = static_cast<Address>(bus.readRAM(addradd + 1) << 8);
+      Address addr2 = static_cast<Address>(bus.readRAM(static_cast<Byte>(addradd + 1))) << 8;
       return addr1 + addr2;
     } else if(addr == "postIndexedIndirect") {
       Address addradd = fetch();
       Address addr1 = bus.readRAM(addradd);
-      Address addr2 = static_cast<Address>(bus.readRAM(addradd + 1)) << 8;
+      Address addr2 = static_cast<Address>(bus.readRAM(static_cast<Byte>(addradd + 1))) << 8;
       Address offset = r_Y;
       return addr1 + addr2 + offset;
     } else if(addr == "indirectAbsolute") {
       Address addradd_low = fetch();
       Address addradd_high = fetch();
       Address addr1 = bus.readRAM(addradd_low + (addradd_high << 8));
-      Address addr2 = bus.readRAM((addradd_low + 1) & 0xff + (addradd_high) << 8);
-      return addr1 + addr2;
+      Address addr2 = bus.readRAM(((addradd_low + 1) & 0xff) + (addradd_high << 8));
+      return addr1 + (addr2 << 8);
     } else if(addr == "relative") {
       Address addr = static_cast<Address>(fetch());
       // 8bitのaddrを16bitの２の補数表現に拡張
@@ -192,11 +193,13 @@ namespace NES {
         addr = 0b1111111100000000 | addr;
       }
       return addr + r_PC;
+    } else {
+      return -1;
     }
   }
 
   // 命令コード、データから命令を実行
-  void CPU::exec(std::string opeName, Address data, std::string mode) {
+  void CPU::exec(std::string opeName, Address data, std::string mode, bool nonOperand) {
     if(opeName == "LDA") { // データをレジスタにロード
       if(mode == "immediate") {
         r_A = data;
@@ -241,19 +244,14 @@ namespace NES {
       setRegisters(r_X);
     } else if(opeName == "TXS") {
       r_SP = r_X;
-      setRegisters(r_SP);
     } else if(opeName == "TYA") {
       r_A = r_Y;
       setRegisters(r_A);
     } else if(opeName == "ADC") {
-      int calc;
-      if(mode == "immediate") {
-        calc = data + r_A + r_status["carry"];
-      } else {
-        calc = bus.readRAM(data) + r_A + r_status["carry"];
-      }
-      r_status["carry"] = !!(calc > 0xff);
-      r_status["overflow"] = !((r_A ^ data) & 0x80) && ((r_A ^ calc) & 0x80);
+      int operand = (mode == "immediate") ? data : bus.readRAM(data);
+      int calc = operand + r_A + r_status["carry"];
+      r_status["carry"] = !!(calc & 0x100);
+      r_status["overflow"] = (r_A ^ calc) & (operand ^ calc) & 0x80;
       setRegisters(calc & 0xff);
       r_A = calc & 0xff;
     } else if(opeName == "AND") {
@@ -266,7 +264,7 @@ namespace NES {
       setRegisters(calc);
       r_A = calc;
     } else if(opeName == "ASL") {
-      if(data == -1) {
+      if(nonOperand) {
         r_status["carry"] = !!(r_A & (1 << 7));
         r_A = (r_A << 1) & 0xff; // Aレジスタを左シフト(8bit以上は切り捨て)
                                  // 7bit目をcarryフラグに代入
@@ -278,14 +276,14 @@ namespace NES {
         setRegisters(bus.readRAM(data));
       }
     } else if(opeName == "BIT") {
-      r_status["zero"] = !!(r_A & bus.readRAM(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
+      r_status["zero"] = !(r_A & bus.readRAM(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
       r_status["overflow"] = !!(bus.readRAM(data) & (1 << 6)); // メモリデータの6bit目をVレジスタに格納
       r_status["negative"] = !!(bus.readRAM(data) & (1 << 7)); // メモリデータの7bit目をNレジスタに格納
     } else if(opeName == "CMP") {
       data = (mode == "immediate") ? data : bus.readRAM(data);
-      int diff = static_cast<int>(r_A) - static_cast<int>(data);
-      r_status["carry"] = !!(diff >= 0);
-      setRegisters(diff);
+      Address diff = r_A - data;
+      r_status["carry"] = !(diff & 0x100);
+      setRegisters(diff & 0xff);
     } else if(opeName == "CPX") {
       data = (mode == "immediate") ? data : bus.readRAM(data);
       int diff = static_cast<int>(r_X) - static_cast<int>(data);
@@ -322,7 +320,7 @@ namespace NES {
       hex(r_Y);
       setRegisters(r_Y);
     } else if(opeName == "LSR") {
-      if(data == -1) {
+      if(nonOperand) {
         r_status["carry"] = (r_A & 0b1);
         r_A = (r_A >> 1) & 0xff;
         setRegisters(r_A);
@@ -336,7 +334,7 @@ namespace NES {
       r_A = r_A | data;
       setRegisters(r_A);
     } else if(opeName == "ROL") {
-      if(data == -1) {
+      if(nonOperand) {
         int tmp = r_A;
         r_A = (r_A << 1) | r_status["carry"];
         r_status["carry"] = !!(tmp & 1 << 7);
@@ -350,7 +348,7 @@ namespace NES {
         bus.writeRAM(data, bus.readRAM(data) & 0xff);
       }
     } else if(opeName == "ROR") {
-      if(data == -1) {
+      if(nonOperand) {
         int tmp = r_A;
         r_A = ((r_A >> 1) | (r_status["carry"] << 7)) & 0xff;
         r_status["carry"] = !!(tmp & 0b1);
@@ -362,13 +360,15 @@ namespace NES {
         setRegisters(bus.readRAM(data));
       }
     } else if(opeName == "SBC") {
-      int tmp = (mode == "immediate") ? data : bus.readRAM(data);
-      int result = r_A + (~tmp + 1) + (0xff + r_status["carry"]);
-      r_status["carry"] = !!(result > 0xff);
-      r_status["overflow"] = !!(r_A < 0x80 && (result & 0xff) > 0x80);
+      data = (mode == "immediate") ? data : bus.readRAM(data);
+      Address result = r_A - data - !r_status["carry"];
+      r_status["carry"] = !(result & 0x100);
+      r_status["overflow"] = (r_A ^ result) & (~data ^ result) & 0x80;
       r_A = result & 0xff;
       setRegisters(r_A);
       r_A = r_A & 0xff;
+      Logger::logLoadByte(data);
+      Logger::logLoadByte(r_A);
     } else if(opeName == "PHA") {
       push_stack(r_A);
     } else if(opeName == "PHP") {

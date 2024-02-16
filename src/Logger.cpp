@@ -9,7 +9,7 @@ using namespace std;
 
 namespace NES {
   namespace Logger {
-    const bool isLog = true;
+    const bool isLog = false;
 
     bool f = false;
 
@@ -116,7 +116,17 @@ namespace NES {
       outputfile.close();
     }
 
+    void logPreIndexdIndirect(Byte addradd, Address addr1, Address addr2) {
+      if(!isLog)
+        return;
+      ofstream outputfile("logs/log.log", ios::app);
+      outputfile << std::uppercase << std::hex << std::setw(4) << "addr1: " << addr1 << " addr2: " << addr2 << " addradd: " << (int)addradd
+                 << " result: " << addr1 + addr2 << " ";
+      outputfile.close();
+    }
+
     void logRegisters(Byte A, Byte X, Byte Y, Byte P, Address PC, Byte SP) {
+      return ;
       if(!isLog)
         return;
 

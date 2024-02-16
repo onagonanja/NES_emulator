@@ -21,6 +21,8 @@ namespace NES {
     void logRead(std::string name, Address addr, Byte data);
     void logWrite(std::string name, Address addr, Byte data);
 
+    void logPreIndexdIndirect(Byte addradd,Address addr1, Address addr2);
+
     void logLoadByte(Byte data);
 
     void logRegisters(Byte A, Byte X, Byte Y, Byte P, Address PC, Byte SP);

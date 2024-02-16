@@ -13,11 +13,13 @@ namespace NES {
 
   void Bus::handleKeyDOWN(SDL_Event &e) {
     if(e.key.keysym.sym == SDLK_ESCAPE) {
-      std::cout << "ESC" << std::endl;
+      std::cout << "START" << std::endl;
       ram[0x4016] |= 0b00010000;
-    }else if(e.key.keysym.sym == SDLK_UP) {
+    } else if(e.key.keysym.sym == SDLK_UP) {
+      std::cout << "UP" << std::endl;
       ram[0x4016] |= 0b00001000;
-    }else if(e.key.keysym.sym == SDLK_DOWN) {
+    } else if(e.key.keysym.sym == SDLK_DOWN) {
+      std::cout << "DOWN" << std::endl;
       ram[0x4016] |= 0b00000100;
     }
   }
@@ -25,9 +27,9 @@ namespace NES {
   void Bus::handleKeyUP(SDL_Event &e) {
     if(e.key.keysym.sym == SDLK_ESCAPE) {
       ram[0x4016] &= 0b11101111;
-    }else if(e.key.keysym.sym == SDLK_UP) {
+    } else if(e.key.keysym.sym == SDLK_UP) {
       ram[0x4016] &= 0b11110111;
-    }else if(e.key.keysym.sym == SDLK_DOWN) {
+    } else if(e.key.keysym.sym == SDLK_DOWN) {
       ram[0x4016] &= 0b11111011;
     }
   }
@@ -61,7 +63,6 @@ namespace NES {
 
     std::cout << "CharacterRomStart: " << CharacterRomStart << std::endl;
     std::cout << "CharacterRomEnd: " << CharacterRomEnd << std::endl;
-
 
     // プログラムをメモリにセット
     for(int i = 0; i < CharacterRomStart - 0x10; i++) {
@@ -97,14 +98,14 @@ namespace NES {
         ram[0x2006] += 1;
       }
       res = ram[addr];
-    }else if(addr >= 0xC000 && addr < 0xFFFF){
+    } else if(addr >= 0xC000 && addr < 0xFFFF) {
       // for NROM-128
       res = ram[addr - 0x4000];
     } else {
       res = ram[addr];
     }
 
-    //Logger::logRead("RAM", addr, res);
+    // Logger::logRead("RAM", addr, res);
     return res;
   }
 
