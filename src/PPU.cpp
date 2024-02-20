@@ -183,8 +183,8 @@ namespace NES {
       if(vblankInterrupt != nullptr && currentDrawPixcel == (SCREEN_Y_WIDTH + 1) * CLOCKS_PER_LINE + 1) {
         drawAll();
         vblankInterrupt();
-        break;
       }
+      break;
     case Hblank:
       break;
     }

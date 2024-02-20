@@ -189,8 +189,6 @@ namespace NES {
 
   // VRAMに書き込む
   void Bus::writeVRAM(Address addr, Byte num) {
-    Logger::logWrite("VRAM", addr, num);
-
     if(0x3000 <= addr && addr <= 0x3eff) {
       addr = 0x2000 + (addr - 0x3000) % 0xF00;
     } else if(0x3f20 <= addr && addr <= 0x3fff) {

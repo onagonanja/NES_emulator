@@ -65,21 +65,13 @@ namespace NES {
     Byte fetch();
 
     // アドレッシングモードを判別
-    int fetchOperand(std::string addr);
+    int fetchOperand(AddressingMode mode);
 
     // 命令コード、オペランドから命令を実行
-    void exec(std::string opeName, Address opeland, std::string mode, bool nonOperand);
+    void exec(Operation opeName, Address opeland, AddressingMode mode, bool nonOperand);
 
-    // 実行,
+    // 実行
     int run();
-
-    //-----------------------Debug-------------------------//
-
-    std::set<std::string> ope_appeared;
-
-    void print_appeared_opelist();
-
-    int count = 0;
   };
 } // namespace NES
 

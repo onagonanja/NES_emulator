@@ -17,9 +17,9 @@ namespace NES {
 
   class Bus {
   private:
-    std::vector<Byte> ram = std::vector<Byte>(RAM_SIZE, 0);
-    std::vector<Byte> vram = std::vector<Byte>(VRAM_SIZE, 0);
-    std::vector<Byte> spriteram = std::vector<Byte>(SPRITERAM_SIZE, 0);
+    Byte ram[RAM_SIZE]= {0};
+    Byte vram[VRAM_SIZE] = {0};
+    Byte spriteram[SPRITERAM_SIZE] = {0};
     std::vector<std::vector<Byte>> characterRom;
 
     Address vram_write_addr = 0;

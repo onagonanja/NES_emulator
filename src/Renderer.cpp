@@ -6,7 +6,6 @@ namespace NES {
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_X_MIN * PIXEL_SIZE,
                               SCREEN_Y_MIN * PIXEL_SIZE, 0);
-
     gRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_RenderClear(gRenderer);
   }

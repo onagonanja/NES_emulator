@@ -68,7 +68,7 @@ namespace NES {
   // PCレジスタをインクリメントし、そのアドレスのデータを返す
   Byte CPU::fetch() {
     Byte res = bus.readRAM(r_PC++);
-    Logger::addFetchList(res);
+    // Logger::addFetchList(res);
     return res;
   }
 
@@ -107,41 +107,14 @@ namespace NES {
 
   // 実行
   int CPU::run() {
-    Logger::clearFetchList();
-    Logger::logPCAddress(r_PC);
-
     Byte code = fetch();
-    std::map<std::string, std::string> ope = opelist[code];
-    std::string opeName = ope["baseName"];
-    std::string addressing = ope["mode"];
-
-    ope_appeared.insert(opeName);
+    std::pair<Operation, AddressingMode> ope = opelist[code];
+    Operation opeName = ope.first;
+    AddressingMode addressing = ope.second;
     int data = fetchOperand(addressing);
-
-    Logger::logOperation(opeName);
-    // Logger::logAddressing(addressing);
-
     exec(opeName, static_cast<Address>(data), addressing, data == -1);
-
-    Logger::logRegisters(r_A, r_X, r_Y,
-                         r_status["carry"] | r_status["zero"] << 1 | r_status["interrupt"] << 2 | r_status["decimal"] << 3 |
-                             r_status["break"] << 4 | r_status["reserved"] << 5 | r_status["overflow"] << 6 | r_status["negative"] << 7,
-                         r_PC, r_SP);
-    Logger::logNewLine();
-
     return cycles[code];
   }
-
-  void CPU::print_appeared_opelist() {
-    // cout << "---------------------Appeared
-    // Opelations----------------------------" << endl;
-    for(auto itr = ope_appeared.begin(); itr != ope_appeared.end(); ++itr) {
-      // cout << *itr << endl;
-    }
-    // cout <<
-    // "--------------------------------------------------------------------" <<
-    // endl;
-  };
 
   // レジスタをセット
   void CPU::setRegisters(Byte num) {
@@ -150,128 +123,155 @@ namespace NES {
   }
 
   // アドレッシングモードを判別し、データを取得
-  int CPU::fetchOperand(std::string addr) {
-    if(addr == "accumulator") {
+  int CPU::fetchOperand(AddressingMode mode) {
+    switch(mode) {
+    case ACCUMULATOR:
       return -1;
-    } else if(addr == "implied") {
+    case IMPLIED:
       return -1;
-    } else if(addr == "immediate") {
+    case IMMEDIATE: {
       return fetch();
-    } else if(addr == "zeroPage") {
+    } break;
+    case ZERO_PAGE: {
       return fetch();
-    } else if(addr == "zeroPageX") {
+    } break;
+    case ZERO_PAGE_X: {
       Byte add = fetch();
       return (add + r_X) & 0xff;
-    } else if(addr == "zeroPageY") {
+    } break;
+    case ZERO_PAGE_Y: {
       Byte add = fetch();
       return (add + r_Y) & 0xff;
-    } else if(addr == "absolute") {
+    } break;
+    case ABSOLUTE: {
       Address add1 = fetch();
       Address add2 = static_cast<Address>(fetch()) << 8;
       return add1 + add2;
-    } else if(addr == "absoluteX") {
+    } break;
+    case ABSOLUTE_X: {
       Address add1 = fetch();
       Address add2 = static_cast<Address>(fetch()) << 8;
       return add1 + add2 + r_X;
-    } else if(addr == "absoluteY") {
+    } break;
+    case ABSOLUTE_Y: {
       Address add1 = fetch();
       Address add2 = static_cast<Address>(fetch()) << 8;
       return add1 + add2 + r_Y;
-    } else if(addr == "preIndexedIndirect") {
+    } break;
+    case PREINDEXEDINDIRECT: {
       Byte addradd = fetch() + r_X;
       Address addr1 = bus.readRAM(addradd);
       Address addr2 = static_cast<Address>(bus.readRAM(static_cast<Byte>(addradd + 1))) << 8;
       return addr1 + addr2;
-    } else if(addr == "postIndexedIndirect") {
+    } break;
+    case POSTINDEXEDINDIRECT: {
       Address addradd = fetch();
       Address addr1 = bus.readRAM(addradd);
       Address addr2 = static_cast<Address>(bus.readRAM(static_cast<Byte>(addradd + 1))) << 8;
       Address offset = r_Y;
       return addr1 + addr2 + offset;
-    } else if(addr == "indirectAbsolute") {
+    } break;
+    case INDIRECT_ABSOLUTE: {
       Address addradd_low = fetch();
       Address addradd_high = fetch();
       Address addr1 = bus.readRAM(addradd_low + (addradd_high << 8));
       Address addr2 = bus.readRAM(((addradd_low + 1) & 0xff) + (addradd_high << 8));
       return addr1 + (addr2 << 8);
-    } else if(addr == "relative") {
+    } break;
+    case RELATIVE: {
       Address addr = static_cast<Address>(fetch());
       // 8bitのaddrを16bitの２の補数表現に拡張
       if((addr & (1 << 7))) {
         addr = 0b1111111100000000 | addr;
       }
       return addr + r_PC;
-    } else {
+    } break;
+    default:
+      std::cout << "unknown addressing mode" << std::endl;
       return -1;
     }
   }
-
   // 命令コード、データから命令を実行
-  void CPU::exec(std::string opeName, Address data, std::string mode, bool nonOperand) {
-    if(opeName == "LDA") { // データをレジスタにロード
-      if(mode == "immediate") {
+  void CPU::exec(Operation opeName, Address data, AddressingMode mode, bool nonOperand) {
+    switch(opeName) {
+    case LDA: {
+      if(mode == IMMEDIATE) {
         r_A = data;
       } else {
         r_A = bus.readRAM(data);
       }
       setRegisters(r_A);
-      Logger::logLoadByte(r_A);
-    } else if(opeName == "LDX") {
-      if(mode == "immediate") {
+      // Logger::logLoadByte(r_A);
+    } break;
+    case LDX: {
+      if(mode == IMMEDIATE) {
         r_X = data;
       } else {
         r_X = bus.readRAM(data);
       }
       setRegisters(r_X);
-      Logger::logLoadByte(r_X);
-    } else if(opeName == "LDY") {
-      if(mode == "immediate") {
+      // Logger::logLoadByte(r_X);
+    } break;
+    case LDY: {
+      if(mode == IMMEDIATE) {
         r_Y = data;
       } else {
         r_Y = bus.readRAM(data);
       }
       setRegisters(r_Y);
-      Logger::logLoadByte(r_Y);
-    } else if(opeName == "STA") { // レジスタのデータをメモリにストア
+      // Logger::logLoadByte(r_Y);
+    } break;
+    case STA: {
       bus.writeRAM(data, r_A);
-    } else if(opeName == "STX") {
+    } break;
+    case STX: {
       bus.writeRAM(data, r_X);
-    } else if(opeName == "STY") {
+    } break;
+    case STY: {
       bus.writeRAM(data, r_Y);
-    } else if(opeName == "TAX") { // レジスタの値を別レジスタにコピー
+    } break;
+    case TAX: {
       r_X = r_A;
       setRegisters(r_X);
-    } else if(opeName == "TAY") {
+    } break;
+    case TAY: {
       r_Y = r_A;
       setRegisters(r_Y);
-    } else if(opeName == "TSX") {
+    } break;
+    case TSX: {
       r_X = r_SP;
       setRegisters(r_X);
-    } else if(opeName == "TXA") {
+    } break;
+    case TXA: {
       r_A = r_X;
       setRegisters(r_X);
-    } else if(opeName == "TXS") {
+    } break;
+    case TXS: {
       r_SP = r_X;
-    } else if(opeName == "TYA") {
+    } break;
+    case TYA: {
       r_A = r_Y;
       setRegisters(r_A);
-    } else if(opeName == "ADC") {
-      int operand = (mode == "immediate") ? data : bus.readRAM(data);
+    } break;
+    case ADC: {
+      int operand = (mode == IMMEDIATE) ? data : bus.readRAM(data);
       int calc = operand + r_A + r_status["carry"];
       r_status["carry"] = !!(calc & 0x100);
       r_status["overflow"] = (r_A ^ calc) & (operand ^ calc) & 0x80;
       setRegisters(calc & 0xff);
       r_A = calc & 0xff;
-    } else if(opeName == "AND") {
+    } break;
+    case AND: {
       int calc;
-      if(mode == "immediate") {
+      if(mode == IMMEDIATE) {
         calc = data & r_A;
       } else {
         calc = bus.readRAM(data) & r_A;
       }
       setRegisters(calc);
       r_A = calc;
-    } else if(opeName == "ASL") {
+    } break;
+    case ASL: {
       if(nonOperand) {
         r_status["carry"] = !!(r_A & (1 << 7));
         r_A = (r_A << 1) & 0xff; // Aレジスタを左シフト(8bit以上は切り捨て)
@@ -283,51 +283,63 @@ namespace NES {
                      (bus.readRAM(data) << 1) & 0xff); // 指定されたアドレスのbitを左シフト(8bit以上は切り捨て)
         setRegisters(bus.readRAM(data));
       }
-    } else if(opeName == "BIT") {
+    } break;
+    case BIT: {
       r_status["zero"] = !(r_A & bus.readRAM(data)); // Aレジスタとメモリデータのand演算の結果をZレジスタに格納
       r_status["overflow"] = !!(bus.readRAM(data) & (1 << 6)); // メモリデータの6bit目をVレジスタに格納
       r_status["negative"] = !!(bus.readRAM(data) & (1 << 7)); // メモリデータの7bit目をNレジスタに格納
-    } else if(opeName == "CMP") {
-      data = (mode == "immediate") ? data : bus.readRAM(data);
+    } break;
+    case CMP: {
+      data = (mode == IMMEDIATE) ? data : bus.readRAM(data);
       Address diff = r_A - data;
       r_status["carry"] = !(diff & 0x100);
       setRegisters(diff & 0xff);
-    } else if(opeName == "CPX") {
-      data = (mode == "immediate") ? data : bus.readRAM(data);
+    } break;
+    case CPX: {
+      data = (mode == IMMEDIATE) ? data : bus.readRAM(data);
       int diff = static_cast<int>(r_X) - static_cast<int>(data);
       r_status["carry"] = !!(diff >= 0);
       setRegisters(diff);
-    } else if(opeName == "CPY") {
-      data = (mode == "immediate") ? data : bus.readRAM(data);
+    } break;
+    case CPY: {
+      data = (mode == IMMEDIATE) ? data : bus.readRAM(data);
       int diff = static_cast<int>(r_Y) - static_cast<int>(data);
       r_status["carry"] = !!(diff >= 0);
       setRegisters(diff);
-    } else if(opeName == "DEC") {
+    } break;
+    case DEC: {
       bus.writeRAM(data, (bus.readRAM(data) + 0xff) & 0xff);
       setRegisters(bus.readRAM(data));
-    } else if(opeName == "DEX") {
+    } break;
+    case DEX: {
       r_X = (r_X + 0xff) & 0xff;
       setRegisters(r_X);
       hex(r_X);
-    } else if(opeName == "DEY") {
+    } break;
+    case DEY: {
       r_Y = (r_Y + 0xff) & 0xff;
       setRegisters(r_Y);
       hex(r_Y);
-    } else if(opeName == "EOR") {
-      data = (mode == "immediate" ? data : bus.readRAM(data));
+    } break;
+    case EOR: {
+      data = (mode == IMMEDIATE ? data : bus.readRAM(data));
       r_A = r_A ^ data;
       setRegisters(r_A);
-    } else if(opeName == "INC") {
+    } break;
+    case INC: {
       bus.writeRAM(data, (bus.readRAM(data) + 1) & 0xff);
       setRegisters(bus.readRAM(data));
-    } else if(opeName == "INX") {
+    } break;
+    case INX: {
       r_X = (r_X + 1) & 0xff;
       setRegisters(r_X);
-    } else if(opeName == "INY") {
+    } break;
+    case INY: {
       r_Y = (r_Y + 1) & 0xff;
       hex(r_Y);
       setRegisters(r_Y);
-    } else if(opeName == "LSR") {
+    } break;
+    case LSR: {
       if(nonOperand) {
         r_status["carry"] = (r_A & 0b1);
         r_A = (r_A >> 1) & 0xff;
@@ -337,11 +349,13 @@ namespace NES {
         bus.writeRAM(data, (bus.readRAM(data) >> 1) & 0xff);
         setRegisters(bus.readRAM(data));
       }
-    } else if(opeName == "ORA") {
-      data = (mode == "immediate") ? data : bus.readRAM(data);
+    } break;
+    case ORA: {
+      data = (mode == IMMEDIATE) ? data : bus.readRAM(data);
       r_A = r_A | data;
       setRegisters(r_A);
-    } else if(opeName == "ROL") {
+    } break;
+    case ROL: {
       if(nonOperand) {
         int tmp = r_A;
         r_A = (r_A << 1) | r_status["carry"];
@@ -355,7 +369,8 @@ namespace NES {
         setRegisters(bus.readRAM(data));
         bus.writeRAM(data, bus.readRAM(data) & 0xff);
       }
-    } else if(opeName == "ROR") {
+    } break;
+    case ROR: {
       if(nonOperand) {
         int tmp = r_A;
         r_A = ((r_A >> 1) | (r_status["carry"] << 7)) & 0xff;
@@ -367,93 +382,119 @@ namespace NES {
         r_status["carry"] = !!(tmp & 0b1);
         setRegisters(bus.readRAM(data));
       }
-    } else if(opeName == "SBC") {
-      data = (mode == "immediate") ? data : bus.readRAM(data);
+    } break;
+    case SBC: {
+      data = (mode == IMMEDIATE) ? data : bus.readRAM(data);
       Address result = r_A - data - !r_status["carry"];
       r_status["carry"] = !(result & 0x100);
       r_status["overflow"] = (r_A ^ result) & (~data ^ result) & 0x80;
       r_A = result & 0xff;
       setRegisters(r_A);
       r_A = r_A & 0xff;
-      Logger::logLoadByte(data);
-      Logger::logLoadByte(r_A);
-    } else if(opeName == "PHA") {
+      // Logger::logLoadByte(data);
+      // Logger::logLoadByte(r_A);
+    } break;
+    case PHA: {
       push_stack(r_A);
-    } else if(opeName == "PHP") {
+    } break;
+    case PHP: {
       push_status_registers();
-    } else if(opeName == "PLA") {
+    } break;
+    case PLA: {
       r_A = pop_stack();
       setRegisters(r_A);
-    } else if(opeName == "PLP") {
+    } break;
+    case PLP: {
       pop_status_registers();
-    } else if(opeName == "JMP") {
+    } break;
+    case JMP: {
       r_PC = data;
-    } else if(opeName == "JSR") {
+    } break;
+    case JSR: {
       int lowByte = (r_PC - 1) & 0xff;
       int highByte = ((r_PC - 1) & 0xff00) >> 8;
       push_stack(highByte);
       push_stack(lowByte);
       r_PC = data;
-    } else if(opeName == "RTS") {
+    } break;
+    case RTS: {
       int lowByte = pop_stack();
       int highByte = pop_stack() << 8;
       r_PC = highByte + lowByte + 1;
-    } else if(opeName == "RTI") {
+    } break;
+    case RTI: {
       // 割り込みから復帰
       pop_status_registers();
       int pc_lowByte = pop_stack();
       int pc_highByte = pop_stack();
       r_PC = (pc_highByte << 8) | pc_lowByte;
-    } else if(opeName == "BCC") {
+    } break;
+    case BCC: {
       if(!r_status["carry"]) {
         r_PC = data;
       }
-    } else if(opeName == "BCS") {
+    } break;
+    case BCS: {
       if(r_status["carry"]) {
         r_PC = data;
       }
-    } else if(opeName == "BEQ") {
+    } break;
+    case BEQ: {
       if(r_status["zero"]) {
         r_PC = data;
       }
-    } else if(opeName == "BMI") {
+    } break;
+    case BMI: {
       if(r_status["negative"]) {
         r_PC = data;
       }
-    } else if(opeName == "BNE") {
+    } break;
+    case BNE: {
       if(!r_status["zero"]) {
         r_PC = data;
       }
-    } else if(opeName == "BPL") {
+    } break;
+    case BPL: {
       if(!r_status["negative"]) {
         r_PC = data;
       }
-    } else if(opeName == "BVC") {
+    } break;
+    case BVC: {
       if(!r_status["overflow"]) {
         r_PC = data;
       }
-    } else if(opeName == "BVS") {
+    } break;
+    case BVS: {
       if(r_status["overflow"]) {
         r_PC = data;
       }
-    } else if(opeName == "CLC") {
+    } break;
+    case CLC: {
       r_status["carry"] = false;
-    } else if(opeName == "CLD") {
+    } break;
+    case CLD: {
       r_status["decimal"] = false;
-    } else if(opeName == "CLI") {
+    } break;
+    case CLI: {
       r_status["interrupt"] = false;
-    } else if(opeName == "CLV") {
+    } break;
+    case CLV: {
       r_status["overflow"] = false;
-    } else if(opeName == "SEC") {
+    } break;
+    case SEC: {
       r_status["carry"] = true;
-    } else if(opeName == "SED") {
+    } break;
+    case SED: {
       r_status["decimal"] = true;
-    } else if(opeName == "SEI") {
+    } break;
+    case SEI: {
       r_status["interrupt"] = true;
-    }
-    // 非公式
-    else if(opeName == "NOPD") {
+    } break;
+    case NOPD: {
       r_PC++;
+    } break;
+    default:
+      std::cout << "unknown operation: " << opeName << std::endl;
     }
   }
 } // namespace NES
