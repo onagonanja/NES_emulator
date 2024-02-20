@@ -181,8 +181,8 @@ namespace NES {
       break;
     case VBlank:
       if(vblankInterrupt != nullptr && currentDrawPixcel == (SCREEN_Y_WIDTH + 1) * CLOCKS_PER_LINE + 1) {
-        drawAll();
         vblankInterrupt();
+        drawAll();
       }
       break;
     case Hblank:

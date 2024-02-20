@@ -42,9 +42,11 @@ namespace NES {
         }
       }
 
-      int cycle = cpu.run();
-      for(int i = 0; i < 3 * cycle; i++) {
-        ppu.run();
+      for(int i = 0; i < 1000; i++) {
+        int cycle = cpu.run();
+        for(int i = 0; i < 3 * cycle; i++) {
+          ppu.run();
+        }
       }
     }
 

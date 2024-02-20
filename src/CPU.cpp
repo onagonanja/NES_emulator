@@ -17,10 +17,6 @@ namespace NES {
 
   CPU::CPU(Bus &b) : bus(b) {}
 
-  void hex(int n) {
-    // cout << hex << setw(4) << setfill('0') << n << endl;
-  }
-
   // options for debug
   void CPU::test_option() {
     // 常にVBRANK状態にする。
@@ -44,7 +40,6 @@ namespace NES {
     Address pc_highByte = bus.readRAM(0xFFFD);
 
     r_PC = (pc_highByte << 8) | pc_lowByte;
-    // r_PC = 0xC000; // for nestest.nes
     r_SP = 0xFD;
 
     r_status["interrupt"] = true;
@@ -68,7 +63,6 @@ namespace NES {
   // PCレジスタをインクリメントし、そのアドレスのデータを返す
   Byte CPU::fetch() {
     Byte res = bus.readRAM(r_PC++);
-    // Logger::addFetchList(res);
     return res;
   }
 
@@ -82,8 +76,6 @@ namespace NES {
   Byte CPU::pop_stack() {
     Byte res = bus.readRAM(STACK_START + r_SP + 1);
     r_SP++;
-    // cout << "pop ";
-    hex(res);
     return res;
   }
 
@@ -314,12 +306,10 @@ namespace NES {
     case DEX: {
       r_X = (r_X + 0xff) & 0xff;
       setRegisters(r_X);
-      hex(r_X);
     } break;
     case DEY: {
       r_Y = (r_Y + 0xff) & 0xff;
       setRegisters(r_Y);
-      hex(r_Y);
     } break;
     case EOR: {
       data = (mode == IMMEDIATE ? data : bus.readRAM(data));
@@ -336,7 +326,6 @@ namespace NES {
     } break;
     case INY: {
       r_Y = (r_Y + 1) & 0xff;
-      hex(r_Y);
       setRegisters(r_Y);
     } break;
     case LSR: {
