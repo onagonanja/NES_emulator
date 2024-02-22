@@ -37,8 +37,9 @@ namespace NES {
   void Bus::readROM() {
     // std::string filename = "./rom/roulette.nes";
     // std::string filename = "./rom/NEStress.NES";
-    std::string filename = "./rom/nestest.nes";
-    // std::string filename = "./rom/masmix.nes";
+    // std::string filename = "./rom/nestest.nes";
+    // std::string filename = "./rom/scroll.nes";
+    std::string filename = "./rom/masmix.nes";
     // std::string filename = "./rom/TK20NTSC.NES";
     // std::string filename = "./rom/hello.nes";
     // std::string filename = "./rom/nesmas.nes";
@@ -63,6 +64,22 @@ namespace NES {
 
     std::cout << "CharacterRomStart: " << CharacterRomStart << std::endl;
     std::cout << "CharacterRomEnd: " << CharacterRomEnd << std::endl;
+
+    int mapper_low = (data[6] & 0xF0) >> 4;
+    int mapper_high = data[7] & 0xF0;
+    int mapper = mapper_low | mapper_high;
+
+    std::cout << "mapper: " << mapper << std::endl;
+
+    banks = data[4];
+    std::cout << "16KB PRG-ROM Banks: " << (int)banks << std::endl;
+
+    // set nametable mirrorring
+    if(data[6] & 1) {
+      mirrorring = VERTICAL;
+    } else {
+      mirrorring = HORIZONAL;
+    }
 
     // プログラムをメモリにセット
     for(int i = 0; i < CharacterRomStart - 0x10; i++) {
@@ -90,21 +107,38 @@ namespace NES {
     // PPUレジスタに対する読み込み
     else if(addr >= 0x2000 && addr < 0x4000) {
       addr = 0x2000 + (addr - 0x2000) % 8;
-      if(addr == 0x2002) {
+
+      if(addr == 0x2000) {
+        // PPUマスタースレーブ、常に1
+        ram[0x2000] |= (1 << 6);
+        res = ram[addr];
+      } else if(addr == 0x2002) {
         // 読み込みで0x2005をクリア？
         ram[0x2005] = 0;
+        res = ram[addr];
       } else if(addr == 0x2007) {
+        res = readVRAM(vram_write_addr);
+        Logger::logreadVRAM(vram_write_addr, res);
         // PPUメモリアドレスを自動で加算
-        ram[0x2006] += 1;
+        if(ram[0x2000] & (1 << 2)) {
+          vram_write_addr += 32;
+        } else {
+          vram_write_addr++;
+        }
+      } else {
+        res = ram[addr];
       }
-      res = ram[addr];
+
     } else if(addr == 0x4016) {
       if(readCallbacks.find(addr) != readCallbacks.end()) {
         res = readCallbacks[addr]();
       }
     } else if(addr >= 0xC000 && addr < 0xFFFF) {
-      // for NROM-128
-      res = ram[addr - 0x4000];
+      if(banks == 1) {
+        res = ram[addr - 0x4000];
+      } else {
+        res = ram[addr];
+      }
     } else {
       res = ram[addr];
     }
@@ -123,15 +157,19 @@ namespace NES {
     }
     // PPUレジスタに対する書き込み
     else if(addr >= 0x2000 && addr < 0x4000) {
-
+      // std::cout << "write PPU regs: " << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << addr << " " << (int)data
+      //<< std::endl;
       addr = 0x2000 + (addr - 0x2000) % 8;
-      if(addr == 0x2004) {
+      if(addr == 0x2003) {
+        // std::cout << "write sprite ram addr: " << data << std::endl;
+        writeVRAM(ram[0x2003], data);
+        sprite_ram_write_addr = data;
+      } else if(addr == 0x2004) {
         // スプライトメモリアドレス(0x2003)で指定されたアドレスへデータを書き込む。
         // 書き込む度にスプライトメモリアドレスはインクリメントされる
-        writeVRAM(ram[0x2003], data);
-        ram[0x2003]++;
-      } else if(addr == 0x2004) {
-        writeSpriteRAM(ram[0x2003], data);
+        // std::cout << "write sprite ram :" << sprite_ram_write_addr << " " << data << std::endl;
+        writeSpriteRAM(sprite_ram_write_addr, data);
+        sprite_ram_write_addr++;
         ram[0x2003]++;
       } else if(addr == 0x2005) {
         // 書き込み回数が偶数回ならScroll_X,奇数ならScroll_Yを書き込む
@@ -164,6 +202,10 @@ namespace NES {
       } else {
         ram[addr] = data;
       }
+    } else if(addr == 0x4014) {
+      for(int i = 0; i < 256; i++) {
+        writeSpriteRAM(i, readRAM((static_cast<Address>(data) << 8) + i));
+      }
     } else if(addr == 0x4016) {
       if(writeCallbacks.find(addr) != writeCallbacks.end()) {
         writeCallbacks[addr](data);
@@ -178,6 +220,18 @@ namespace NES {
     // 0x3F10,0x3F14,0x3F18,0x3F1Cは0x3F00,0x3F04,0x3F08,0x3F0Cのミラー
     if(addr == 0x3F10 || addr == 0x3F14 || addr == 0x3F18 || addr == 0x3F1C) {
       return vram[addr - 0x10];
+    } else if(0x2000 <= addr && addr < 0x23C0) {
+      // nametable[0]
+      return getNametable((addr - 0x2000) / NAMETABLE_X, (addr - 0x2000) % NAMETABLE_X);
+    } else if(0x2400 <= addr && addr < 0x27C0) {
+      // nametable[1]
+      return getNametable((addr - 0x2400) / NAMETABLE_X, NAMETABLE_X + (addr - 0x2400) % NAMETABLE_X);
+    } else if(0x2800 <= addr && addr < 0x2BC0) {
+      // nametable[2]
+      return getNametable(NAMETABLE_Y + (addr - 0x2800) / NAMETABLE_X, (addr - 0x2800) % NAMETABLE_X);
+    } else if(0x2800 <= addr && addr < 0x2BC0) {
+      // nametable[3]
+      return getNametable(NAMETABLE_Y + (addr - 0x2C00) / NAMETABLE_X, NAMETABLE_X + (addr - 0x2C00) % NAMETABLE_X);
     } else if(0x3000 <= addr && addr <= 0x3eff) {
       return vram[0x2000 + (addr - 0x3000) % 0xF00];
     } else if(0x3f20 <= addr && addr <= 0x3fff) {
@@ -191,6 +245,17 @@ namespace NES {
   void Bus::writeVRAM(Address addr, Byte num) {
     if(0x3000 <= addr && addr <= 0x3eff) {
       addr = 0x2000 + (addr - 0x3000) % 0xF00;
+    } else if(0x2000 <= addr && addr < 0x23C0) {
+      // nametable[0]
+      nametable[(addr - 0x2000) / NAMETABLE_X][(addr - 0x2000) % NAMETABLE_X] = num;
+    } else if(0x2400 <= addr && addr < 0x27C0) {
+      // nametable[1]
+      nametable[(addr - 0x2400) / NAMETABLE_X][NAMETABLE_X + (addr - 0x2400) % NAMETABLE_X] = num;
+    } else if(0x2800 <= addr && addr < 0x2BC0) {
+      nametable[NAMETABLE_Y + (addr - 0x2800) / NAMETABLE_X][(addr - 0x2800) % NAMETABLE_X] = num;
+    } else if(0x2800 <= addr && addr < 0x2BC0) {
+      // nametable[3]
+      nametable[NAMETABLE_Y + (addr - 0x2C00) / NAMETABLE_X][NAMETABLE_X + (addr - 0x2C00) % NAMETABLE_X] = num;
     } else if(0x3f20 <= addr && addr <= 0x3fff) {
       addr = 0x3f00 + ((addr - 0x3f20) % 0x20);
     }
@@ -211,6 +276,16 @@ namespace NES {
 
   Byte Bus::getScrollX() { return scroll_x; }
   Byte Bus::getScrollY() { return scroll_y; }
+
+  Byte Bus::getNametable(int y, int x) {
+    if(mirrorring == HORIZONAL) {
+      x %= NAMETABLE_X;
+    } else {
+      y %= NAMETABLE_Y;
+    }
+
+    return nametable[y % (NAMETABLE_Y * 2)][x % (NAMETABLE_X * 2)];
+  }
 
   void Bus::setReadCallback(Address addr, std::function<Byte(void)> func) { readCallbacks[addr] = func; }
 

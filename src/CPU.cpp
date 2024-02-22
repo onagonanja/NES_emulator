@@ -3,12 +3,12 @@
 #include "header/Logger.hpp"
 #include "header/defs.hpp"
 #include "header/operationlist.hpp"
-#include "magic_enum.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <magic_enum.hpp>
 #include <map>
 #include <string>
 #include <time.h>
@@ -60,9 +60,38 @@ namespace NES {
     r_status["break"] = false;
   }
 
+  void CPU::IRQ() {
+    if(r_status["interrupt"]) {
+      return;
+    }
+    push_PC();
+    push_status_registers();
+
+    int pc_lowByte = bus.readRAM(0xFFFE);
+    int pc_highByte = bus.readRAM(0xFFFF);
+    r_PC = (pc_highByte << 8) | pc_lowByte;
+
+    r_status["interrupt"] = true;
+    r_status["break"] = false;
+  }
+
+  void CPU::BRK_() {
+    if(r_status["interrupt"]) {
+      return;
+    }
+    r_PC++;
+    push_PC();
+    push_status_registers();
+    r_status["break"] = true;
+    int pc_lowByte = bus.readRAM(0xFFFE);
+    int pc_highByte = bus.readRAM(0xFFFF);
+    r_PC = (pc_highByte << 8) | pc_lowByte;
+  }
+
   // PCレジスタをインクリメントし、そのアドレスのデータを返す
   Byte CPU::fetch() {
     Byte res = bus.readRAM(r_PC++);
+    Logger::addFetchList(res);
     return res;
   }
 
@@ -99,12 +128,27 @@ namespace NES {
 
   // 実行
   int CPU::run() {
+    Logger::clearFetchList();
+    Logger::logPCAddress(r_PC);
+
     Byte code = fetch();
     std::pair<Operation, AddressingMode> ope = opelist[code];
     Operation opeName = ope.first;
     AddressingMode addressing = ope.second;
+
+    
     int data = fetchOperand(addressing);
+
+    Logger::logOperation(opeName);
+    
     exec(opeName, static_cast<Address>(data), addressing, data == -1);
+
+    Logger::logRegisters(r_A, r_X, r_Y,
+                         r_status["carry"] | r_status["zero"] << 1 | r_status["interrupt"] << 2 | r_status["decimal"] << 3 |
+                             r_status["break"] << 4 | r_status["reserved"] << 5 | r_status["overflow"] << 6 | r_status["negative"] << 7,
+                         r_PC, r_SP);
+    Logger::logNewLine();
+
     return cycles[code];
   }
 
@@ -186,6 +230,9 @@ namespace NES {
   // 命令コード、データから命令を実行
   void CPU::exec(Operation opeName, Address data, AddressingMode mode, bool nonOperand) {
     switch(opeName) {
+    case BRK: {
+      BRK_();
+    } break;
     case LDA: {
       if(mode == IMMEDIATE) {
         r_A = data;
@@ -193,7 +240,7 @@ namespace NES {
         r_A = bus.readRAM(data);
       }
       setRegisters(r_A);
-      // Logger::logLoadByte(r_A);
+      Logger::logLoadByte(r_A);
     } break;
     case LDX: {
       if(mode == IMMEDIATE) {
@@ -202,7 +249,7 @@ namespace NES {
         r_X = bus.readRAM(data);
       }
       setRegisters(r_X);
-      // Logger::logLoadByte(r_X);
+      Logger::logLoadByte(r_X);
     } break;
     case LDY: {
       if(mode == IMMEDIATE) {
@@ -211,7 +258,7 @@ namespace NES {
         r_Y = bus.readRAM(data);
       }
       setRegisters(r_Y);
-      // Logger::logLoadByte(r_Y);
+      Logger::logLoadByte(r_Y);
     } break;
     case STA: {
       bus.writeRAM(data, r_A);
@@ -419,41 +466,49 @@ namespace NES {
       r_PC = (pc_highByte << 8) | pc_lowByte;
     } break;
     case BCC: {
+      Logger::logAddress(data);
       if(!r_status["carry"]) {
         r_PC = data;
       }
     } break;
     case BCS: {
+      Logger::logAddress(data);
       if(r_status["carry"]) {
         r_PC = data;
       }
     } break;
     case BEQ: {
+      Logger::logAddress(data);
       if(r_status["zero"]) {
         r_PC = data;
       }
     } break;
     case BMI: {
+      Logger::logAddress(data);
       if(r_status["negative"]) {
         r_PC = data;
       }
     } break;
     case BNE: {
+      Logger::logAddress(data);
       if(!r_status["zero"]) {
         r_PC = data;
       }
     } break;
     case BPL: {
+      Logger::logAddress(data);
       if(!r_status["negative"]) {
         r_PC = data;
       }
     } break;
     case BVC: {
+      Logger::logAddress(data);
       if(!r_status["overflow"]) {
         r_PC = data;
       }
     } break;
     case BVS: {
+      Logger::logAddress(data);
       if(r_status["overflow"]) {
         r_PC = data;
       }
@@ -479,11 +534,14 @@ namespace NES {
     case SEI: {
       r_status["interrupt"] = true;
     } break;
-    case NOPD: {
-      r_PC++;
-    } break;
-    default:
-      std::cout << "unknown operation: " << opeName << std::endl;
+    case NOP:
+      break;
+    case NOPD:
+      break;
+    default: {
+      // std::cout << std::hex << "unknown operation: " << opeName << std::endl;
+      // std::cout << "unknown operation: " << magic_enum::enum_name(opeName) << std::endl;
+    }
     }
   }
 } // namespace NES

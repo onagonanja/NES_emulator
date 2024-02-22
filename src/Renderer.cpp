@@ -35,7 +35,7 @@ namespace NES {
 
   void Renderer::showFPS() {
     clock_t now = clock();
-    std::cout << "FPS: " << 1.0 / ((now - time) / (double)CLOCKS_PER_SEC) << std::endl;
+    //std::cout << "FPS: " << 1.0 / ((now - time) / (double)CLOCKS_PER_SEC) << std::endl;
     time = now;
   }
 } // namespace NES

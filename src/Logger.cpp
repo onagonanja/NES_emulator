@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <magic_enum.hpp>
 #include <string>
 
 using namespace std;
@@ -24,6 +25,14 @@ namespace NES {
       if(!isLog)
         return;
       ofstream outputfile("logs/log.log", ios::trunc);
+      outputfile.close();
+    }
+
+    void logAddress(Address addr) {
+      if(!isLog)
+        return;
+      ofstream outputfile("logs/log.log", ios::app);
+      outputfile << uppercase << hex << setw(4) << setfill('0') << addr << " ";
       outputfile.close();
     }
 
@@ -67,7 +76,7 @@ namespace NES {
       outputfile.close();
     }
 
-    void logOperation(string opeName) {
+    void logOperation(Operation opeName) {
       if(!isLog)
         return;
       ofstream outputfile("logs/log.log", ios::app);
@@ -80,7 +89,7 @@ namespace NES {
         }
       }
 
-      outputfile << " " << opeName << " ";
+      outputfile << " " << magic_enum::enum_name(opeName) << " ";
 
       outputfile.close();
       f = true;
@@ -99,13 +108,21 @@ namespace NES {
       if(!isLog || !f)
         return;
       ofstream outputfile("logs/log.log", ios::app);
-      outputfile << "$" << uppercase << hex << setw(2) << setfill('0') << addr << " = " << hex << setw(2) << setfill('0') << (int)data
+      outputfile << "$" << uppercase << hex << setw(4) << setfill('0') << addr << " = " << hex << setw(2) << setfill('0') << (int)data
                  << " ";
       /*
       outputfile << "write" + name + "(" << hex << setw(4) << setfill('0')
                  << addr << "," << hex << setw(2) << setfill('0') << (int)data
                  << ") ";
       */
+      outputfile.close();
+    }
+
+    void logreadVRAM(Address addr, Byte data) {
+      if(!isLog)
+        return;
+      ofstream outputfile("logs/log.log", ios::app);
+      outputfile << "readVRAM: " << hex << setw(4) << setfill('0') << addr << " " << hex << setw(2) << setfill('0') << (int)data << " ";
       outputfile.close();
     }
 
@@ -127,32 +144,37 @@ namespace NES {
     }
 
     void logRegisters(Byte A, Byte X, Byte Y, Byte P, Address PC, Byte SP) {
-      return;
       if(!isLog)
         return;
 
-      ifstream inputfile("logs/log.log", ios::in);
+      // ifstream inputfile("logs/log.log", ios::in);
 
       // read final line
       string line;
+      /*
       while(getline(inputfile, line)) {
         if(inputfile.eof()) {
           break;
         }
       }
       inputfile.close();
+      */
 
       ofstream outputfile("logs/log.log", ios::app);
 
+      /*
       for(int i = line.length(); i < LOG_REGS_FROM; i++) {
         outputfile << " ";
       }
+      */
 
       outputfile << "A:" << uppercase << hex << setw(2) << setfill('0') << (int)A << " ";
+      /*
       outputfile << "X:" << uppercase << hex << setw(2) << setfill('0') << (int)X << " ";
       outputfile << "Y:" << uppercase << hex << setw(2) << setfill('0') << (int)Y << " ";
       outputfile << "P:" << uppercase << hex << setw(2) << setfill('0') << (int)P << " ";
       outputfile << "SP:" << uppercase << hex << setw(2) << setfill('0') << (int)SP << " ";
+      */
       outputfile.close();
     }
 

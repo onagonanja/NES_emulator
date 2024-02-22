@@ -41,6 +41,12 @@ namespace NES {
     // Non-Markable-Interrupt
     void NMI();
 
+    // Interrupt-Request
+    void IRQ();
+
+    // Break-Command
+    void BRK_();
+
     void setStatusRegByByte(Byte data);
 
     // 値に応じてレジスタを変化させる

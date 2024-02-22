@@ -102,9 +102,16 @@ namespace NES {
     Byte nameTable[30][32]; //[縦][横]
     const int NAMETABLENUM = ((bus.readRAM(0x2000) >> 1) & 1) * 2 + (bus.readRAM(0x2000) & 1);
 
-    for(int i = 0; i < 30; i++) {
-      for(int j = 0; j < 32; j++) {
-        nameTable[i][j] = bus.readVRAM(NAMETABLESTART[NAMETABLENUM] + i * 32 + j);
+    const int scroll_x = bus.getScrollX();
+    const int scroll_y = bus.getScrollY();
+
+    const int base_x = scroll_x + (NAMETABLENUM % 2) * NAMETABLE_X;
+    const int base_y = scroll_y + (NAMETABLENUM / 2) * NAMETABLE_Y;
+
+    for(int y = 0; y < 30; y++) {
+      for(int x = 0; x < 32; x++) {
+        nameTable[y][x] = bus.getNametable(base_y + y, base_x + x);
+        // nameTable[i][j] =  bus.readVRAM(NAMETABLESTART[NAMETABLENUM] + i * 32 + j);
       }
     }
 
@@ -121,10 +128,12 @@ namespace NES {
       }
     }
 
+    int bgPattrnTableAddr = !!(bus.readRAM(0x2000) & (1 << 4)) ? 0x100 : 0x0000;
+
     for(int i = 0; i < 30; i++) {
       for(int j = 0; j < 32; j++) {
         Byte paletteNUM = paretTable[i / 2][j / 2];
-        std::vector<Byte> sprite = bus.readCharacterROM(nameTable[i][j]);
+        std::vector<Byte> sprite = bus.readCharacterROM(bgPattrnTableAddr + nameTable[i][j]);
         std::vector<Byte> pallete = getBackGroundPallet(paletteNUM);
         for(int di = 0; di < 8; di++) {
           for(int dj = 0; dj < 8; dj++) {
@@ -136,34 +145,46 @@ namespace NES {
       }
     }
 
-    /*------------------------Render Sprite--------------------------*/
+    /*------------------------------Render Sprite-----------------------------*/
+
+    int spritePatternTableAddr = !!(bus.readRAM(0x2000) & (1 << 3)) ? 0x100 : 0x000;
 
     for(int i = 0; i < 256; i += 4) {
-      if(bus.readSpriteRAM(i) >= 0xff) {
+      if(bus.readSpriteRAM(i) >= 0xEF) {
         continue;
       }
       int y = bus.readSpriteRAM(i) + 1;
       int x = bus.readSpriteRAM(i + 3);
       int palletenum = bus.readSpriteRAM(i + 2) & 0b11;
 
+      if(i < 3) {
+        // std::cout << "sprite" << i << " x: " << x << " y: " << y << std::endl;
+      }
+
       // TODO: apply these flags
       bool isBehindBg = !!(bus.readSpriteRAM(i + 2) & 0b00100000);
       bool isReversed = !!(bus.readSpriteRAM(i + 2) & 0b01000000);
       bool isInverted = !!(bus.readSpriteRAM(i + 2) & 0b10000000);
 
-      std::vector<Byte> sprite = bus.readCharacterROM(bus.readSpriteRAM(i + 1));
+      std::vector<Byte> sprite = bus.readCharacterROM(spritePatternTableAddr + bus.readSpriteRAM(i + 1));
       std::vector<Byte> pallete = getSpriteColor(palletenum);
 
       for(int dy = 0; dy < 8; dy++) {
         for(int dx = 0; dx < 8; dx++) {
           int absY = y + dy;
           int absX = x + dx;
-          if(absX >= 240 || absY >= 256) {
+
+          if(absY >= 240 || absX >= 256) {
             continue;
           }
-          screenBuff[absX][absY][0] = colors[pallete[sprite[dx * 8 + dy]]][0];
-          screenBuff[absX][absY][1] = colors[pallete[sprite[dx * 8 + dy]]][1];
-          screenBuff[absX][absY][2] = colors[pallete[sprite[dx * 8 + dy]]][2];
+          
+          if(sprite[dy * 8 + dx] == 0) {
+            continue;
+          }
+          
+          screenBuff[absY][absX][0] = colors[pallete[sprite[dy * 8 + dx]]][0];
+          screenBuff[absY][absX][1] = colors[pallete[sprite[dy * 8 + dx]]][1];
+          screenBuff[absY][absX][2] = colors[pallete[sprite[dy * 8 + dx]]][2];
         }
       }
     }
@@ -173,16 +194,33 @@ namespace NES {
   void PPU::run() {
     switch(state) {
     case PreRender:
+      // vblank flag reset
+      bus.writeRAM(0x2002, bus.readRAM(0x2002) & ~(1 << 7));
       break;
     case Render:
+      // sprite 0 hit
+      if(bus.readSpriteRAM(3) == currentDrawPixcel % CLOCKS_PER_LINE && bus.readSpriteRAM(0) + 1 == currentDrawPixcel / CLOCKS_PER_LINE) {
+        // std::cout << "sprite 0 hit" << std::endl;
+        bus.writeRAM(0x2002, bus.readRAM(0x2002) | (1 << 6));
+      }
       // drawBgPixel(currentDrawPixcel % CLOCKS_PER_LINE, currentDrawPixcel / CLOCKS_PER_LINE);
       break;
     case PostRender:
       break;
     case VBlank:
-      if(vblankInterrupt != nullptr && currentDrawPixcel == (SCREEN_Y_WIDTH + 1) * CLOCKS_PER_LINE + 1) {
-        vblankInterrupt();
+      // vblank flag
+      bus.writeRAM(0x2002, bus.readRAM(0x2002) | (1 << 7));
+
+      // sprite 0 hit clear
+      bus.writeRAM(0x2002, bus.readRAM(0x2002) | (1 << 6));
+
+      if(currentDrawPixcel == (SCREEN_Y_WIDTH + 1) * CLOCKS_PER_LINE + 1) {
         drawAll();
+        bool vblankInterruptFlag = !!(bus.readRAM(0x2000) & (1 << 7));
+        if(vblankInterrupt != nullptr && vblankInterruptFlag) {
+          vblankInterrupt();
+        }
+        
       }
       break;
     case Hblank:
