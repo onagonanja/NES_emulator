@@ -18,6 +18,7 @@ SDL2
 `make run ROMPATH=<Your .nes file pass>`
 
 ## ScreenShots
+![スクリーンショット 2024-06-01 163511](https://github.com/onagonanja/NES_emulator/assets/82591137/4accc964-ea4a-41f6-8290-cd44f20bf4e1)
 ![スクリーンショット 2024-06-01 162324](https://github.com/onagonanja/NES_emulator/assets/82591137/77f22eb7-0f19-4ae8-838a-b7e9676df8f2)
 
 
