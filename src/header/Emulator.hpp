@@ -13,7 +13,7 @@
 namespace NES {
   class Emulator {
   public:
-    Emulator();
+    Emulator(char *romPath);
 
     void run();
 

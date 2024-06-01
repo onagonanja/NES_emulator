@@ -12,12 +12,18 @@
 #include <vector>
 
 int main(int argc, char *argv[]) {
+
+  if(argc != 2) {
+    std::cout << "Usage: <rompass>" << std::endl;
+    return 1;
+  }
+
   if(SDL_Init(SDL_INIT_VIDEO)) {
     SDL_Quit();
     return 1;
   }
 
-  NES::Emulator *emu = new NES::Emulator();
+  NES::Emulator *emu = new NES::Emulator(argv[1]);
   emu->run();
 
   return 0;

@@ -46,7 +46,7 @@ namespace NES {
     void handleKeyDOWN(SDL_Event &event);
     void handleKeyUP(SDL_Event &event);
 
-    void readROM();
+    void readROM(char *romPath);
 
     Byte readRAM(Address addr);
     void writeRAM(Address addr, Byte data);

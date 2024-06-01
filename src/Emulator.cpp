@@ -10,11 +10,11 @@
 namespace NES {
   const Address PAD1 = 0x4016;
 
-  Emulator::Emulator()
+  Emulator::Emulator(char *romPath)
       : cpu(bus), ppu(bus, screenBuff), controller(e), renderer(screenBuff),
         screenBuff(SCREEN_Y_WIDTH, std::vector<std::vector<int>>(SCREEN_X_WIDTH, std::vector<int>(3, 0))) {
     NES::Logger::clearLog();
-    bus.readROM();
+    bus.readROM(romPath);
     bus.setReadCallback(PAD1, [&]() { return controller.readController(); });
     bus.setWriteCallback(PAD1, [&](Byte data) { controller.writeController(data); });
     cpu.reset();
